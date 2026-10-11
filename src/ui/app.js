@@ -25,6 +25,10 @@ async function init() {
     return;
   }
   sessionStorage.removeItem("rex-isolation-attempt");
+  // A controlled page is already isolated and skips registration above.
+  // Check for service-worker fixes on each online visit without delaying startup.
+  if ("serviceWorker" in navigator)
+    navigator.serviceWorker.getRegistration().then(registration => registration?.update()).catch(() => {});
   const renderer = new Renderer($("#preview"));
   const session = new Session(
     renderer,
