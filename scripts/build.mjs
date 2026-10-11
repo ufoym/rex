@@ -15,7 +15,7 @@ await mkdir(path.join(root, "artifacts"), { recursive: true });
 const stage = await mkdtemp(path.join(root, "artifacts", "build-"));
 const copy = (from, to) => cp(path.join(root, from), path.join(stage, to), {
   recursive: true,
-  filter: file => ![".DS_Store", "__pycache__"].includes(path.basename(file)),
+  filter: file => !path.basename(file).startsWith("._") && ![".DS_Store", "__pycache__"].includes(path.basename(file)),
 });
 try {
   // An explicit publication boundary excludes tests, tooling and development links.
