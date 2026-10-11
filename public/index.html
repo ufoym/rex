@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Rex · Real-time TeX</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">R<span>ex</span><small>Real-time TeX</small></div>
+      <div class="actions">
+        <label class="button"
+          >Open project<input id="open" type="file" multiple hidden /></label
+        ><label class="button folder-button">Open folder<input id="open-folder" type="file" webkitdirectory multiple hidden /></label
+        ><button id="save">Save file</button><button id="save-project">Save project</button><button id="export">Export PDF</button
+        ><button id="compile" class="primary">Compile <kbd>⌘ ↵</kbd></button>
+      </div>
+    </header>
+    <main>
+      <section class="editor-pane">
+        <div class="pane-bar">
+          <select id="filename" aria-label="Project file"></select
+          ><span class="subtle">Main: <span id="main-file">main.tex</span></span>
+        </div>
+        <textarea
+          id="editor"
+          spellcheck="false"
+          aria-label="LaTeX source"
+          autocapitalize="off"
+          autocomplete="off"
+        ></textarea>
+        <div class="editor-footer">
+          <span id="position">Ln 1, Col 1</span
+          ><span>Your project stays in this browser</span>
+        </div>
+      </section>
+      <section class="preview-pane">
+        <div class="pane-bar">
+          <span>Preview</span><div class="actions"><button id="locate" title="Show this paragraph (Ctrl/⌘ + Alt + J)">Show in preview</button><button id="benchmark">Benchmark</button></div>
+        </div>
+        <div id="preview"><div class="welcome">Loading the typesetting engine…</div></div>
+      </section>
+    </main>
+    <footer>
+      <span class="dot"></span><span id="status">Preparing…</span
+      ><button id="toggle-log">Compilation log</button>
+    </footer>
+    <pre id="log" hidden></pre>
+    <script type="module" src="./assets/app.js"></script>
+  </body>
+</html>

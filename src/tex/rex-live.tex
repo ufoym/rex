@@ -1,0 +1,9 @@
+% Floating units are compiled as boxes; LaTeX supplies their font and caption setup.
+\makeatletter
+\long\def\rexFloatBegin#1{\def\@captype{#1}\vbox\bgroup\hsize\columnwidth\@parboxrestore\@floatboxreset}
+\def\rexFloatEnd{\par\egroup}
+\renewenvironment{figure}[1][]{\rexFloatBegin{figure}}{\rexFloatEnd}
+\renewenvironment{figure*}[1][]{\rexFloatBegin{figure}}{\rexFloatEnd}
+\renewenvironment{table}[1][]{\rexFloatBegin{table}}{\rexFloatEnd}
+\renewenvironment{table*}[1][]{\rexFloatBegin{table}}{\rexFloatEnd}
+\makeatother

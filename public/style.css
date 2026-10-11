@@ -1,0 +1,238 @@
+:root {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #263146;
+  background: #f7f8fa;
+  font-size: 13px;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  height: 65px;
+  background: #fff;
+  border-bottom: 1px solid #e4e8ee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 25px;
+  flex-shrink: 0;
+}
+.brand {
+  font-family: Georgia, serif;
+  font-size: 29px;
+  color: #224d41;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+.brand small {
+  font: 12px system-ui;
+  letter-spacing: 1px;
+  font-weight: 500;
+  margin-left: 20px;
+  color: #6d7888;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+button,
+.button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #dce2e9;
+  border-radius: 6px;
+  background: #fff;
+  color: #35435a;
+  padding: 8px 13px;
+}
+button:hover,
+.button:hover {
+  background: #f2f5f8;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.primary {
+  background: #265b4b;
+  color: white;
+  border-color: #265b4b;
+}
+.primary:hover {
+  background: #1d4b3c;
+}
+kbd {
+  margin-left: 12px;
+  opacity: 0.6;
+  font: 10px system-ui;
+}
+main {
+  display: grid;
+  grid-template-columns: 45% 55%;
+  min-height: 0;
+  flex: 1;
+}
+.editor-pane,
+.preview-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.editor-pane {
+  background: #fff;
+  border-right: 1px solid #dfe5ed;
+}
+.pane-bar {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #e3e7ed;
+  font-size: 12px;
+  flex-shrink: 0;
+  background: #fdfdfe;
+}
+.pane-bar button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+.subtle {
+  color: #919aaa;
+  font-size: 11px;
+}
+#filename { max-width: 65%; border: 0; background: transparent; color: inherit; font: inherit; }
+.source-marker { position: absolute; pointer-events: none; border: 1px solid #488571; background: #48857110; border-radius: 3px; }
+textarea {
+  border: 0;
+  resize: none;
+  outline: 0;
+  flex: 1;
+  width: 100%;
+  padding: 24px;
+  color: #37435c;
+  tab-size: 2;
+  font:
+    13px/1.85 "SFMono-Regular",
+    Consolas,
+    monospace;
+  white-space: pre;
+  overflow: auto;
+  background: #fff;
+}
+.editor-footer {
+  height: 29px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  font-size: 10px;
+  color: #8c96a6;
+  border-top: 1px solid #edf0f4;
+}
+#preview {
+  flex: 1;
+  overflow: auto;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  background: #edf0f4;
+}
+.page {
+  position: relative;
+  flex-shrink: 0;
+  background: #fff;
+  box-shadow: 0 3px 15px #16233415;
+}
+.welcome {
+  margin: auto;
+  color: #788498;
+}
+footer {
+  height: 35px;
+  border-top: 1px solid #dfe5ed;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 18px;
+  background: #fff;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 100%;
+  background: #488571;
+}
+#toggle-log {
+  margin-left: auto;
+  border: 0;
+  padding: 4px;
+  font-size: 11px;
+  color: #768198;
+}
+#log {
+  margin: 0;
+  background: #202836;
+  color: #c7d5e5;
+  font: 11px/1.7 monospace;
+  max-height: 220px;
+  overflow: auto;
+  padding: 16px;
+  white-space: pre-wrap;
+}
+#log[hidden] {
+  display: none;
+}
+@media (max-width: 800px) {
+  header {
+    padding: 12px;
+    height: auto;
+    min-height: 65px;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  header .actions { flex-wrap: wrap; justify-content: flex-end; }
+  .brand small,
+  kbd,
+  .folder-button {
+    display: none;
+  }
+  main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 40% 60%;
+  }
+  textarea {
+    padding: 12px;
+  }
+  .actions {
+    gap: 4px;
+  }
+  .actions button,
+  .button {
+    padding: 7px;
+    font-size: 11px;
+  }
+  .page {
+    transform-origin: top left;
+  }
+  #preview {
+    align-items: flex-start;
+  }
+}

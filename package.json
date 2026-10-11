@@ -1,0 +1,35 @@
+{
+  "name": "rex-browser-tex",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "setup:bibliography": "node scripts/setup.mjs --bibliography",
+    "dev": "node scripts/serve.mjs --source",
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/serve.mjs",
+    "preview": "node scripts/serve.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/editor.mjs",
+    "test:static": "node tests/offline.mjs",
+    "test:full": "node tests/full.mjs",
+    "test:all": "npm run check && npm test && npm run test:browser && npm run test:static && npm run test:full",
+    "bench": "node tests/benchmark.mjs",
+    "bench:compare": "node tests/compare.mjs",
+    "bench:texlode": "node tests/texlode.mjs"
+  },
+  "dependencies": {
+    "opentype.js": "1.3.4",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "4.10.38"
+  },
+  "devDependencies": {
+    "playwright": "1.51.1"
+  },
+  "description": "Browser-native LaTeX editing with persistent LuaTeX WASM workers",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  }
+}

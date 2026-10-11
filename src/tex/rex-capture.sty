@@ -1,0 +1,35 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{rex-capture}[2026/10/11 Rex layout journal]
+\RequirePackage{luatexbase}
+\newcatcodetable\rexCaptureCodes
+{\makeatletter\savecatcodetable\rexCaptureCodes}
+\directlua{rex_capture=dofile(kpse.find_file('rex-capture.lua','lua'))}
+\AddToHook{begindocument/end}{\directlua{rex_capture.start(\number\rexCaptureCodes)}\rexInstallPictures}
+\AddToHook{para/begin}{\directlua{rex_capture.parbegin()}}
+\AddToHook{para/after}{\directlua{rex_capture.parend()}}
+\AddToHook{cmd/@afterheading/before}{\directlua{rex_capture.afterheading()}}
+\AddToHook{cmd/@outputpage/before}{\directlua{rex_capture.outputmode(true)}}
+\AddToHook{cmd/@outputpage/after}{\directlua{rex_capture.outputmode(false)}}
+\AddToHook{cmd/@footnotetext/before}{\directlua{rex_capture.outputmode(true)}}
+\AddToHook{cmd/@footnotetext/after}{\directlua{rex_capture.outputmode(false)}}
+\AddToHook{shipout/before}{\directlua{rex_capture.pageattr='\luaescapestring{\the\pdfvariable pageattr}'}}
+\AddToHook{enddocument/afterlastpage}{\directlua{rex_capture.finish()}}
+\directlua{
+  for _,name in ipairs(rex_capture.environments) do
+    tex.sprint(\number\rexCaptureCodes,'\\AddToHook{env/'..name..'/begin}{\\directlua{rex_capture.env("'..name..'",true)}}')
+    tex.sprint(\number\rexCaptureCodes,'\\AddToHook{env/'..name..'/after}{\\directlua{rex_capture.env("'..name..'",false)}}')
+  end
+  for _,name in ipairs(rex_capture.headings) do
+    tex.sprint(\number\rexCaptureCodes,'\\AddToHook{cmd/'..name..'/before}{\\directlua{rex_capture.heading("'..name..'")}}')
+  end
+}
+\def\rexInstallPictures{\directlua{
+  for _,name in ipairs({'tikzpicture','circuitikz','pgfpicture'}) do
+    if not (token.create(name).cmdname=='undefined_cs') then
+      tex.sprint(\number\rexCaptureCodes,'\\expandafter\\let\\csname rexOriginal'..name..'\\expandafter\\endcsname\\csname '..name..'\\endcsname')
+      tex.sprint(\number\rexCaptureCodes,'\\expandafter\\def\\csname '..name..'\\endcsname{\\directlua{rex_capture.pictures:begin("'..name..'")}}')
+      tex.sprint(\number\rexCaptureCodes,'\\AddToHook{env/'..name..'/begin}{\\directlua{rex_capture.pictures:arm("'..name..'")}}')
+    end
+  end
+}}
+\endinput

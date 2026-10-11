@@ -1,0 +1,9 @@
+/node_modules/
+/vendor/
+/dist/
+/artifacts/
+/public/assets
+/public/vendor
+.DS_Store
+__pycache__/
+*.pyc

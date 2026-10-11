@@ -1,0 +1,13 @@
+\documentclass{article}
+\usepackage{tikz}
+\begin{document}
+Edit the surrounding prose to reuse the cached diagram.
+
+\begin{tikzpicture}
+  \draw[blue,thick] (0,0) rectangle (3,2);
+  \draw[red,->] (0,0) -- (3,2);
+  \node at (1.5,1) {Rex};
+\end{tikzpicture}
+
+Change a drawing command to invalidate the picture cache.
+\end{document}
