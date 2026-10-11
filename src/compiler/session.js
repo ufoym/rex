@@ -79,6 +79,15 @@ export class Session {
   }
   async onBackground(data) {
     if (data.projectId !== undefined && data.projectId !== this.projectId) return;
+    if (data.type === "progress") {
+      if (this.busy) {
+        if (data.phase === "fetching")
+          this.status(data.total ? `Loading engine resources ${data.current}/${data.total}…` : "Loading engine resources…");
+        else if (data.phase === "engine") this.status("Starting typesetting engine…");
+        else if (data.phase === "typesetting") this.status("Typesetting…");
+      }
+      return;
+    }
     if (data.type === "standby-ready") { this.standbyReady = true; return; }
     if (data.type !== "layout" && data.type !== "failure") return;
     this.busy = false;
@@ -141,6 +150,7 @@ export class Session {
     try {
       await this.renderer.layout(data);
       if (generation !== this.generation) return;
+      this.status("Preview ready · warming live editor…");
       this.warmed = this.warm(this.live, generation);
       await this.warmed;
       if (data.revision === this.revision)

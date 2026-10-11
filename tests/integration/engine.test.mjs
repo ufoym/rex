@@ -4,8 +4,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { load } from "../helpers/runtime-helper.mjs";
+import { starterDocument } from "../../src/core/starter.js";
+import { coldPass } from "../../src/compiler/full-pass.js";
+import { io, load } from "../helpers/runtime-helper.mjs";
 import {
+  resources,
   engine,
   run,
   collect,
@@ -210,4 +213,15 @@ test("obsolete project results cannot change the current compilation state", asy
   assert.equal(s.busy, true);
   assert.equal(s.layout, undefined);
   assert.equal(s.standbyReady, undefined);
+});
+
+test("the starter compiles without serial network reads after loading resources", async () => {
+  const serial = [];
+  const fresh = await resources({...io, fetchSync: url => {
+    serial.push(url);
+    return io.fetchSync(url);
+  }});
+  const output = await coldPass(fresh, {files: {"main.tex": starterDocument}, main: "main.tex"}, {}, {});
+  assert.equal(new TextDecoder().decode(output.pdf.slice(0, 4)), "%PDF");
+  assert.deepEqual(serial, [], "Startup dependencies should be fetched asynchronously before entering TeX");
 });

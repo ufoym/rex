@@ -47,12 +47,13 @@ Follow the setup commands in the [README](../README.md). Set `PORT=8082 npm run 
 | `npm run check` | Syntax, module / worker paths, links and distribution hashes |
 | `npm test` | Project round trips, incremental parsing, cache identity, WASM, frozen layout, state isolation and server boundaries |
 | `npm run test:browser` | Editing, fonts, revisions, busy project switches, import / export / restore, child files, navigation, paragraph growth / splits / merges, overfull line cleanup, tables, image pixels, equations and footnote markers |
+| `npm run test:webkit` | Mobile WebKit under `/rex/`: service-worker isolation, download progress, PDF export, offline reload and live editing |
 | `npm run test:static` | Hosts without isolation headers, service worker and offline editing |
 | `npm run test:full` | Standby, PDF picture equivalence, three bibliography backends, named indexes / styles / removal, subpath hosting and examples |
 | `npm run bench` | End-to-end edits in 10 / 100 / 300-page documents and native LuaLaTeX reference |
 | `npm run bench:compare -- /path/to/checkout` | Optional native compiler comparison with an external checkout; see the performance methodology |
 
-Run `npm run build` first. `npm run test:all` runs checks and functional suites. On Linux, `npx playwright install --with-deps chromium` installs browser system dependencies. Browser suites own ephemeral servers serving `dist/` and clean up on success or failure. Regression output goes to `artifacts/tests/`; performance drivers live in `benchmarks/` and write to `artifacts/benchmarks/`.
+Run `npm run build` first. `npm run test:all` runs checks and functional suites. On Linux, `npx playwright install --with-deps chromium webkit` installs browser system dependencies. Browser suites own ephemeral servers serving `dist/` and clean up on success or failure. Regression output goes to `artifacts/tests/`; performance drivers live in `benchmarks/` and write to `artifacts/benchmarks/`.
 
 The frozen fixture covers five cases, seven pages and 1,584 inline glyphs, including mathematics, lists, tables, rules, footnotes, links and floats. Native geometry checks run when `lualatex` is installed and otherwise report a skip. Benchmarks require it, warm up 20 edits and measure 300 per document. Shared CI runs functional checks; controlled performance runs enforce the latency gates described in the [performance report](performance.md).
 
@@ -79,6 +80,8 @@ Cross-Origin-Resource-Policy: same-origin
 
 On HTTPS hosts without isolation headers, `sw.js` adds them to cached responses and may reload the first visit. The browser must support cross-origin isolation, SharedArrayBuffer, Atomics, workers, WebAssembly and Canvas. Offline mode serves previously loaded resources; missing packages and unused bibliography tools still need an initial download. Publish resources together and reload to acquire a new version.
 
-The [CI workflow](../.github/workflows/ci.yml) runs regression suites. The separate [Pages workflow](../.github/workflows/pages.yml) publishes the complete `dist/` directory after build checks and the static-host/offline browser test pass. In `ufoym/rex`, select **Settings → Pages → Build and deployment → Source → GitHub Actions** once; pushes to `main` then deploy to [ufoym.github.io/rex/](https://ufoym.github.io/rex/). The workflow also supports manual runs on `main` from the Actions tab. Runtime assets are installed during the build, so `vendor/` and `dist/` remain ignored by Git.
+The [CI workflow](../.github/workflows/ci.yml) runs regression suites. The separate [Pages workflow](../.github/workflows/pages.yml) publishes the complete `dist/` directory after build checks and the static-host/offline and mobile WebKit browser tests pass. In `ufoym/rex`, select **Settings → Pages → Build and deployment → Source → GitHub Actions** once; pushes to `main` then deploy to [ufoym.github.io/rex/](https://ufoym.github.io/rex/). The workflow also supports manual runs on `main` from the Actions tab. Runtime assets are installed during the build, so `vendor/` and `dist/` remain ignored by Git.
 
 On GitHub Pages, the service worker supplies isolation headers and reloads the first visit. Before relying on a published deployment, verify isolation, PDF export and an offline reload on the target host. Installation is tested on macOS and Linux; Windows can use WSL, while native Windows setup remains unverified.
+
+The first visit downloads the typesetting runtime and fonts. The compiler preloads the starter document’s dependencies with bounded parallel requests and displays resource counts while loading. Other packages remain available on demand. After changing the pinned runtime or [starter document](../src/core/starter.js), run `node scripts/profile-startup.mjs` to regenerate the [startup profile](../src/compiler/startup-assets.js); the engine regression checks that the starter needs no synchronous resource downloads.

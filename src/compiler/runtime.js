@@ -1,13 +1,16 @@
 import createLuaTeX from "../../vendor/engine/luatex.mjs";
 import { BundleSet, browserIO } from "../../vendor/engine/vfs/bundle.js";
 import { mkdirp } from "../../vendor/engine/vfs/lazyfs.js";
+import { startupAssets } from "./startup-assets.js";
 import { bundles, texFiles } from "./assets.js";
 export { bundles, texFiles } from "./assets.js";
 export async function resources(
   io = browserIO(),
   base = new URL("../../vendor/", import.meta.url).href,
+  progress = () => {},
 ) {
   const set = new BundleSet(io);
+  progress({phase: "fetching", detail: "engine manifests"});
   await set.addAll(
     bundles.map((name) => ({
       name,
@@ -16,6 +19,18 @@ export async function resources(
   );
   await set.loadHot(base + "engine/bundles/hot.json");
   await set.prefetchEager();
+  // TeX opens files synchronously. Fetch the starter's working set concurrently
+  // before entering WASM, so mobile network latency is not paid for each file.
+  const wanted = startupAssets.map(path => set.files.get(path)).filter(file => file && !set.has(file.path));
+  let next = 0, done = 0;
+  progress({phase: "fetching", current: 0, total: wanted.length});
+  await Promise.all(Array.from({length: Math.min(16, wanted.length)}, async () => {
+    while (next < wanted.length) {
+      const file = wanted[next++];
+      await set.fetchAsync(file);
+      progress({phase: "fetching", detail: file.path.split("/").at(-1), current: ++done, total: wanted.length});
+    }
+  }));
   const scripts = Object.fromEntries(
     await Promise.all(
       texFiles.map(async (f) => [f, await io.fetch(new URL("../tex/" + f, import.meta.url).href)]),

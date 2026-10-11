@@ -29,7 +29,7 @@ For GitHub Pages, set **Settings → Pages → Build and deployment → Source**
 ## Development
 
 ```sh
-npx playwright install chromium
+npx playwright install chromium webkit
 npm run build
 npm run test:all
 npm run bench  # requires native lualatex

@@ -42,11 +42,16 @@ onmessage = async ({data}) => {
   const generation = epoch;
   const current = () => { if (generation !== epoch) throw Error('Compilation cancelled'); };
   try {
-    res ||= await resources();
+    const progress = details => {
+      if (generation === epoch) postMessage({type: 'progress', projectId: data.projectId, ...details});
+    };
+    res ||= await resources(undefined, undefined, progress);
     current();
     const t = performance.now(), initialStandby = standby, wasReady = standby?.isReady;
+    progress({phase: 'engine'});
     wasmModule ||= await res.set.io.fetch(new URL('../../vendor/engine/luatex.wasm', import.meta.url).href).then(WebAssembly.compile);
     current();
+    progress({phase: 'typesetting'});
     if (data.options?.standby === false) { standby?.close(); standby = null; warmKey = null; }
     let aux = data.aux || {}, output, previous = await signatureOf(aux), converged = false;
     let passes = 0, bibliographyRuns = 0, indexRuns = 0, pictureHits = 0, bodyMs = 0, usedStandby = false;
