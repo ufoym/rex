@@ -93,8 +93,9 @@ async function setupBibliography(temp) {
   await download(buildSource + 'LICENSE', path.join(dest, 'TeXlyre-LICENSE'), '8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef');
   await download(buildSource + 'NOTICE', path.join(dest, 'TeXlyre-NOTICE'), '984c51c84d462e27d93386f65a07c4e7177f18a1b2f9c8d8c4b2f343e89f0c56');
   await download('https://github.com/plk/biblatex/archive/refs/tags/v3.22.tar.gz', path.join(temp,'biblatex.tar.gz'), 'adb952420025785839aa7e67793606c24c9d9935f8b42015dffe4958515b3f04');
-  await download('https://mirrors.ctan.org/macros/latex/contrib/logreq.zip', path.join(temp,'logreq.zip'), '14b1a51c4b4204be70d78c1789a89e7d28a3ee1b43f341d0f50f606d2c97f517');
-  await download('https://mirrors.ctan.org/biblio/bibtex/base.zip', path.join(temp,'base.zip'), 'de1557d3a4b853416d4802034d1b06712e6ffe4e7b0b7aecfc13f63adf525ad1');
+  // Use a fixed HTTPS mirror: automatic redirects can select a mirror with a broken certificate chain.
+  await download('https://mirrors.mit.edu/CTAN/macros/latex/contrib/logreq.zip', path.join(temp,'logreq.zip'), '14b1a51c4b4204be70d78c1789a89e7d28a3ee1b43f341d0f50f606d2c97f517');
+  await download('https://mirrors.mit.edu/CTAN/biblio/bibtex/base.zip', path.join(temp,'base.zip'), 'de1557d3a4b853416d4802034d1b06712e6ffe4e7b0b7aecfc13f63adf525ad1');
   command('tar',['-xzf',path.join(temp,'biblatex.tar.gz'),'-C',temp]);
   command('unzip',['-q',path.join(temp,'logreq.zip'),'-d',temp]);
   command('unzip',['-q',path.join(temp,'base.zip'),'-d',temp]);
