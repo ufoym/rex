@@ -1,6 +1,6 @@
-import { preamble } from './document.js';
-import { digest, packFiles, unpackFiles } from './snapshot.js';
-import { resources, restoreResources, engine, run, collect, writeFiles } from './runtime.js';
+import { preamble } from '../core/document.js';
+import { digest, packFiles } from '../protocol/snapshot.js';
+import { engine, run, collect } from './runtime.js';
 // Index streams open in the preamble. Restoring old .idx bytes after that would leave stale entries.
 const inputAux = aux => Object.fromEntries(Object.entries(aux).filter(([name]) => !name.endsWith('.idx')));
 // Any dependency change invalidates a standby, including imported classes and preamble inputs.
@@ -11,12 +11,12 @@ export function bodySnapshot(files, main) {
   const source = files[main], pre = preamble(source);
   return {...files, [main]: '\n'.repeat((pre.match(/\n/g) || []).length) + source.slice(pre.length)};
 }
-function captureFiles(files, main, pause) {
+export function captureFiles(files, main, pause) {
   return {...bodySnapshot(files, main),
     'rex-preamble.tex': preamble(files[main]),
     'capture.tex': `\\RequirePackage{rex-capture}\\input{rex-preamble.tex}\\directlua{${pause}}\\input{${main}}`};
 }
-function compile(M, logs) {
+export function compile(M, logs) {
   if (run(M, 'capture.tex') !== 0) throw Error(logs.join('\n'));
   return collect(M);
 }
@@ -36,7 +36,7 @@ export async function coldPass(res, data, aux, cacheFiles, wasmModule) {
 }
 export class FullPass {
   constructor(files, main, aux, wasmModule, resources) {
-    this.worker = new Worker(new URL('./full-pass.js', import.meta.url), {type: 'module'});
+    this.worker = new Worker(new URL('../workers/full-worker.js', import.meta.url), {type: 'module'});
     this.ready = new Promise((resolve, reject) => { this.resolveReady = resolve; this.rejectReady = reject; });
     this.ready.catch(() => {});
     // Only source/aux changes cross this gate. PDF cache blobs are installed before warming.
@@ -61,34 +61,4 @@ export class FullPass {
     return result;
   }
   close() { this.worker.terminate(); this.rejectReady(Error('Standby closed')); this.reject?.(Error('Standby closed')); }
-}
-// Importing this module provides the host API. Running it as the Worker entry
-// installs the standby compiler without overriding the coordinator's handler.
-if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope && self.location.href === import.meta.url) {
-  onmessage = async ({data}) => {
-    try {
-      const res = data.resources ? restoreResources(data.resources) : await resources();
-      const logs = [], state = new Int32Array(data.gate, 0, 2), known = new Set(res.set.cache.keys());
-      const files = captureFiles({...data.files, ...data.aux}, data.main,
-        "local f=io.open('/rex-standby','r') f:read('*a') f:close()");
-      const M = await engine(res, files, line => logs.push(line), {}, data.wasmModule), FS = M.FS;
-      let released = false, start;
-      FS.registerDevice(FS.makedev(81, 0), {
-        open(s) { s.seekable = false; },
-        read() {
-          if (released) return 0;
-          postMessage({type: 'ready'});
-          while (Atomics.load(state, 0) === 0) Atomics.wait(state, 0, 0);
-          start = performance.now();
-          writeFiles(FS, unpackFiles(new Uint8Array(data.gate, 8, Atomics.load(state, 1))));
-          released = true;
-          return 0;
-        }
-      });
-      FS.mkdev('/rex-standby', FS.makedev(81, 0));
-      const output = compile(M, logs);
-      const loadedResources = [...res.set.cache].filter(([key]) => !known.has(key));
-      postMessage({type: 'pass', ...output, loadedResources, logs, bodyMs: performance.now() - start}, [output.pdf.buffer]);
-    } catch (e) { postMessage({type: 'failure', message: String(e)}); }
-  };
 }

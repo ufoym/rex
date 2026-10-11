@@ -6,14 +6,14 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { liveDriver } from "../src/runtime.js";
-import { decodeFrame, encodeRequest } from "../src/transport.js";
-import { decodeDisplayList, equivalent } from "../src/display-list.js";
+import { liveDriver } from "../src/compiler/runtime.js";
+import { decodeFrame, encodeRequest } from "../src/protocol/transport.js";
+import { decodeDisplayList, equivalent } from "../src/protocol/display-list.js";
 
 const revision = "9b86f576ed977853d6a36c0f41b14a037297b150";
 const upstream = path.resolve(process.argv[2] || "../texlode-benchmark");
 const quick = process.argv.includes("--quick");
-const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9) || "artifacts/tests/texlode-workloads.json";
+const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9) || "artifacts/benchmarks/texlode-workloads.json";
 const rounds = quick ? 1 : 3, batches = quick ? 2 : 30, warmupBatches = quick ? 1 : 5, batchSize = quick ? 3 : 100;
 const hash = value => createHash("sha256").update(value).digest("hex");
 const percentile = (values, p) => [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * p))];
@@ -135,7 +135,7 @@ const report = {
   sourceHashes: {}, results: [], checks: {validatedUpdates: 0},
 };
 try {
-  for (const file of ["tests/texlode.mjs", "src/runtime.js", "src/transport.js", "src/display-list.js",
+  for (const file of ["benchmarks/texlode.mjs", "src/compiler/runtime.js", "src/protocol/transport.js", "src/protocol/display-list.js",
     ...await fs.readdir("src/tex").then(names => names.map(name => path.join("src/tex", name)))])
     report.sourceHashes[file] = hash(await fs.readFile(file));
   for (const [index, name] of categories.entries()) {

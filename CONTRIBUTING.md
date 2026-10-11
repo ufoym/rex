@@ -1,6 +1,6 @@
 # Contributing
 
-Small, focused improvements are welcome. Read the [guide](docs/guide.md) before changing compilation, caching or rendering.
+Small, focused improvements are welcome. Read the [guide](docs/guide.md) and [module map](docs/architecture.md) before changing compilation, caching or rendering.
 
 ## Issues and pull requests
 
@@ -8,7 +8,7 @@ For a bug, include a minimal `.tex` project, reproduction steps, expected and ac
 
 Describe feature requests through a concrete use case. Discuss changes to the compilation protocol, dependencies or cache semantics before implementing a large change.
 
-Keep ES modules small and the edit path direct. Add a regression test for changed behavior, update relevant documentation, then run:
+Keep ES modules small and the edit path direct. Place source and tests by responsibility using the [project structure](docs/architecture.md); performance drivers belong in `benchmarks/`. Add a regression test for changed behavior, update relevant documentation, then run:
 
 ```sh
 npm run build

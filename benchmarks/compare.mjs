@@ -6,16 +6,16 @@ import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { setTimeout as pause } from "node:timers/promises";
-import { liveDriver } from "../src/runtime.js";
-import { decodeFrame, encodeRequest } from "../src/transport.js";
-import { decodeDisplayList, equivalent } from "../src/display-list.js";
+import { liveDriver } from "../src/compiler/runtime.js";
+import { decodeFrame, encodeRequest } from "../src/protocol/transport.js";
+import { decodeDisplayList, equivalent } from "../src/protocol/display-list.js";
 
 const upstream = path.resolve(process.argv[2] || "../realtime-tex");
 const quick = process.argv.includes("--quick");
 const selection = process.argv.find(arg => arg.startsWith("--case="))?.slice(7);
 const position = process.argv.find(arg => arg.startsWith("--position="))?.slice(11);
 const rexTex = path.resolve(process.argv.find(arg => arg.startsWith("--rex-tex="))?.slice(10) || "src/tex");
-const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9) || "artifacts/tests/comparison.json";
+const output = process.argv.find(arg => arg.startsWith("--output="))?.slice(9) || "artifacts/benchmarks/comparison.json";
 const numberOption = (name, fallback) => {
   const value = process.argv.find(arg => arg.startsWith(`--${name}=`))?.split("=")[1];
   if (value === undefined) return fallback;
@@ -158,7 +158,7 @@ const report = {
   rexTex,
 };
 try {
-  for (const file of ["tests/compare.mjs", "src/runtime.js", "src/transport.js", "src/display-list.js", ...await fs.readdir(rexTex).then(names => names.map(name => path.join(rexTex, name)))])
+  for (const file of ["benchmarks/compare.mjs", "src/compiler/runtime.js", "src/protocol/transport.js", "src/protocol/display-list.js", ...await fs.readdir(rexTex).then(names => names.map(name => path.join(rexTex, name)))])
     report.sourceHashes[path.relative(process.cwd(), path.resolve(file))] = hash(await fs.readFile(file));
   for (const [index, item] of cases.entries()) {
     console.log(`Case ${index + 1}/${cases.length}: ${item.pages} pages, ${item.position}, ${item.kind}`);
@@ -205,8 +205,8 @@ try {
             assert.equal(response.header.status, "ok", JSON.stringify(response.header));
             const ref = refs[edit % 2];
             if (!equivalent(display, ref.journal.units[target], ref.pages)) {
-              await fs.mkdir("artifacts/tests", {recursive: true});
-              await fs.writeFile("artifacts/tests/comparison-mismatch.json", JSON.stringify({name, item, edit, display,
+              await fs.mkdir("artifacts/benchmarks", {recursive: true});
+              await fs.writeFile("artifacts/benchmarks/comparison-mismatch.json", JSON.stringify({name, item, edit, display,
                 reference: ref.pages[target], unit: ref.journal.units[target], context: context(unit, external)}));
               mismatch = {status: "output-mismatch", edit,
                 observedColours: display.lines.flatMap(line => line.items.filter(value => value[0] === "c")),
@@ -238,12 +238,12 @@ try {
       runMediansMs: row.rounds.map(run => run[name].medianMs),
     }]));
     report.results.push(row);
-    await fs.mkdir("artifacts/tests", {recursive: true});
+    await fs.mkdir("artifacts/benchmarks", {recursive: true});
     await fs.mkdir(path.dirname(output), {recursive: true});
     await fs.writeFile(output, JSON.stringify(report));
     console.log(JSON.stringify({...item, ...row.summary}));
   }
-  await fs.mkdir("artifacts/tests", {recursive: true});
+  await fs.mkdir("artifacts/benchmarks", {recursive: true});
   for (const [file, expected] of Object.entries(report.sourceHashes))
     assert.equal(hash(await fs.readFile(file)), expected, `Source changed during measurement: ${file}`);
   await fs.writeFile(output, JSON.stringify(report));

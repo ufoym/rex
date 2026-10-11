@@ -1,6 +1,6 @@
-import { digest, packFiles } from './snapshot.js';
-import { preamble } from './document.js';
-import PDFLib from '../vendor/pdf-lib.mjs';
+import { digest, packFiles } from '../protocol/snapshot.js';
+import { preamble } from '../core/document.js';
+import PDFLib from '../../vendor/pdf-lib.mjs';
 const envs = 'tikzpicture|circuitikz|pgfpicture';
 // Stateful commands and external inputs cannot be safely replaced with a cached PDF region.
 const unsafe = /\\(?:label|ref|pageref|eqref|footnotemark|footnotetext|href|hyperref|hyperlink|hypertarget|url|autoref|cref|Cref|vref|nameref|the|value|arabic|roman|Roman|alph|Alph|fnsymbol|today|newcounter|stepcounter|refstepcounter|addtocounter|setcounter|verb|input|pgfimage|includesvg|includepdf|lstinputlisting|include|footnote|index|marginpar|write|immediate|pgfmathrandom|random|pgfmathsetseed|pdfsavepos|savepos|global|xdef|gdef|savebox|sbox|pgfdeclarelayer|newbox|newsavebox|usebox|setbox|catcode|makeatletter|makeatother|ExplSyntaxOn|obeylines|obeyspaces|scantokens|lstinline|mintinline|Verb|directlua|luaexec|luadirect|if|else|fi|loop|csname|expandafter)\b|\\(?:cite|footcite|includegraphics|pgfplotstable)|\\the(?!ta\b|refore\b)[A-Za-z]+|remember\s+picture|overlay|trim (?:axis|left|right)|legend to name|\b(?:table|file)\s*[\[{]|\\begin\{(?:verbatim|lstlisting|minted|luacode\*?)\}/;

@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
-import { startServer } from "../scripts/serve.mjs";
+import { startServer } from "../../scripts/serve.mjs";
 
 export async function openBrowser({ isolation = true, viewport, basePath = "/" } = {}) {
   // Tests own an ephemeral server and always exercise the publishable build.

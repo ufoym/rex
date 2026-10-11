@@ -1,6 +1,6 @@
 # Benchmark methodology
 
-The README contains the [feature matrix](../README.md#feature-comparison) and [performance summary](../README.md#performance-comparison). This document retains the detailed results, measurement scope, reproduction and evidence. Features were checked against primary documentation and source on 2026-10-11; documented support is distinguished from locally tested behavior.
+The [comparison document](comparison.md) contains the [feature matrix](comparison.md#feature-comparison) and [performance summary](comparison.md#performance-comparison). This document retains the detailed results, measurement scope, reproduction and evidence. Features were checked against primary documentation and source on 2026-10-11; documented support is distinguished from locally tested behavior.
 
 ## Reading the percentages
 
@@ -8,9 +8,9 @@ Results use **% faster / % slower**, calculated from unrounded summary values in
 
 Rex versus realtime-tex at the shared native compiler boundary and Rex versus its preceding browser build have matching timers. TeXpresso preview and native LuaLaTeX full-pass timers include different work from Rex; their faster / slower percentages describe recorded timings rather than directly comparable product speeds. Measurements cover these configurations only. Texifier, TeXlyre, Overleaf, Typst and pdfLaTeX have no same-machine timing here, so no percentage comparison is assigned to them.
 
-## Auditing the README summary
+## Auditing the comparison summary
 
-The README displays Rex median, baseline median, Rex P95, baseline P95 and the median percentage in separate columns, with one row per baseline and document size. The summary uses the first text paragraph consistently; the full native table below also retains middle / last edits, math and styles. Its data come from these paths in the [raw report](benchmarks/performance.json):
+The comparison summary displays Rex median, baseline median, Rex P95, baseline P95 and the median percentage in separate columns, with one row per baseline and document size. The summary uses the first text paragraph consistently; the full native table below also retains middle / last edits, math and styles. Its data come from these paths in the [raw report](benchmarks/performance.json):
 
 - Browser Rex: `final.summary`; individual samples and the three runs are in `final.rounds[].results[]`.
 - TeXpresso: `comparison.texpresso.summary` and `comparison.texpresso.rounds[]`, including pixel verification and source hashes.
@@ -24,7 +24,7 @@ Run variability also matters. At 300 pages, first-paragraph native run medians r
 
 ## Shared native compiler comparison
 
-`tests/compare.mjs` compares Rex's resident paragraph compiler with unmodified realtime-tex 0.0.2 at commit `210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1`. This is a compiler-layer comparison: it bypasses both application sessions, Rex's WASM worker and the VS Code extension. It does not measure their end-to-end product latency.
+`benchmarks/compare.mjs` compares Rex's resident paragraph compiler with unmodified realtime-tex 0.0.2 at commit `210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1`. This is a compiler-layer comparison: it bypasses both application sessions, Rex's WASM worker and the VS Code extension. It does not measure their end-to-end product latency.
 
 Both use native LuaHBTeX 1.22.0 / TeX Live 2025 on Apple M4, the same Node.js 24.6.0 host, anonymous OS pipes, full-capture paragraph state and display-list decoder. Standard realtime-tex server patches remain enabled. Both use their normal raw UTF-8 compile protocol and JSON control messages, with encoding inside the timer. Source hashes and the exact environment are retained in the raw report.
 
@@ -81,11 +81,11 @@ To reproduce with native LuaLaTeX installed and Rex setup complete:
 git clone https://github.com/HenryXiaoYang/realtime-tex ../realtime-tex-comparison
 git -C ../realtime-tex-comparison checkout 210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1
 npm run bench:compare -- ../realtime-tex-comparison
-npm run bench:compare -- ../realtime-tex-comparison --pause=0 --output=artifacts/tests/comparison-burst.json
+npm run bench:compare -- ../realtime-tex-comparison --pause=0 --output=artifacts/benchmarks/comparison-burst.json
 # Optional smoke run: append --quick (not comparable with the published results).
 ```
 
-The checkout must be clean. No Rust build is required because the common host drives each native Lua / TeX server directly. Default output goes to ignored `artifacts/tests/comparison.json`; temporary compilation directories and owned child processes are cleaned up. The external checkout remains outside Rex and is not a runtime or distribution dependency. Default-policy results live at `comparison.realtimeTex`; burst results live at `comparison.realtimeTexBurst` in the [raw report](benchmarks/performance.json). The prior utility-QoS experiment and its original source hashes remain under `responsiveness.before.utility`; it is historical evidence, not a measurement of the current source.
+The checkout must be clean. No Rust build is required because the common host drives each native Lua / TeX server directly. Default output goes to ignored `artifacts/benchmarks/comparison.json`; temporary compilation directories and owned child processes are cleaned up. The external checkout remains outside Rex and is not a runtime or distribution dependency. Default-policy results live at `comparison.realtimeTex`; burst results live at `comparison.realtimeTexBurst` in the [raw report](benchmarks/performance.json). The prior utility-QoS experiment and its original source hashes remain under `responsiveness.before.utility`; it is historical evidence, not a measurement of the current source.
 
 realtime-tex's [published benchmarks](https://github.com/HenryXiaoYang/realtime-tex/blob/210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1/docs/benchmarks.md) use a different machine, fonts and Rust session boundary. They are useful context, but are not inserted into the same-hardware table. Its [live-editing documentation](https://github.com/HenryXiaoYang/realtime-tex/blob/210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1/docs/live-editing.md) distinguishes exact paragraph output from later global layout.
 
@@ -97,7 +97,7 @@ The detailed native results therefore withhold realtime-tex latency for this cas
 
 ## texlode: published evidence
 
-The README pairs Rex’s native measurements on the original public paragraph samples with the preprint’s author-reported timings. It retains the later AMD EPYC product report as an unmatched reference. Author results and local results use different machines; the ratios below are explicitly cross-machine elapsed-time ratios.
+The comparison summary pairs Rex’s native measurements on the original public paragraph samples with the preprint’s author-reported timings. It retains the later AMD EPYC product report as an unmatched reference. Author results and local results use different machines; the ratios below are explicitly cross-machine elapsed-time ratios.
 
 Clemens Lode's [Real-Time LuaTeX preprint](https://www.tug.org/tug2026/preprints/lode-realtime.pdf), dated 2026-06-13, describes a resident LuaTeX server, display-list extraction, browser Canvas rendering and background layout convergence. Paragraph output updates before global layout settles. The [product documentation](https://www.texlode.com/features/) confirms server compilation. This makes texlode relevant to the feature comparison; no same-machine product run is available here.
 
@@ -107,7 +107,7 @@ The [public benchmark README](https://github.com/texlode/luatex-benchmark) disti
 
 ### texlode public-sample measurements
 
-Measured on **2026-10-11**, using [tests/texlode.mjs](../tests/texlode.mjs). The driver reads the five sample bodies verbatim from [systematic-benchmark.tex at commit `9b86f576ed977853d6a36c0f41b14a037297b150`](https://github.com/texlode/luatex-benchmark/blob/9b86f576ed977853d6a36c0f41b14a037297b150/systematic-benchmark.tex), including the long paragraph’s Lua-generated sentences and the exact inline / display mathematics. It uses the public script’s book defaults, 10pt Latin Modern, microtype defaults, amsmath and 345pt column width. No samples are replaced by Rex’s usual fox / dog / cat edit corpus.
+Measured on **2026-10-11**, using [benchmarks/texlode.mjs](../benchmarks/texlode.mjs). The driver reads the five sample bodies verbatim from [systematic-benchmark.tex at commit `9b86f576ed977853d6a36c0f41b14a037297b150`](https://github.com/texlode/luatex-benchmark/blob/9b86f576ed977853d6a36c0f41b14a037297b150/systematic-benchmark.tex), including the long paragraph’s Lua-generated sentences and the exact inline / display mathematics. It uses the public script’s book defaults, 10pt Latin Modern, microtype defaults, amsmath and 345pt column width. No samples are replaced by Rex’s usual fox / dog / cat edit corpus.
 
 **Hardware:** Rex runs on **Apple M4**, Darwin 25.6.0, Node.js 24.6.0, native **LuaHBTeX 1.22.0 / TeX Live 2025**. The paper’s reported machine is **Intel Core i7-1355U / TeX Live 2025**; its exact engine build, OS, font files, microtype version and product implementation are not pinned in the public harness. Both use the published sample settings, but the proprietary texlode pipeline is not executed or reproduced. The later ~8 ms AMD EPYC report describes a different six-line workload and is not assigned a ratio.
 
@@ -125,7 +125,7 @@ Every ratio is **author-reported elapsed time ÷ Rex measured median**, calculat
 
 **Sampling:** There are three independent sequential runs per sample, each with a fresh native resident engine and context from a complete document capture. Each run discards 5 warmup batches of 100 compiles, then measures 30 batches of 100 compiles: **9,000 measured and 1,500 warmup responses per category**. The sample text is identical on every request, matching the public repeated-compilation workload; the paragraph is typeset again on every request without result memoization. There is no artificial pause. Each batch mean averages its individual timed requests, excluding host validation between them. Percentiles use the public `bench-lib.lua` index rule, `floor(n*p)` in a sorted zero-indexed array. Published Rex medians / P95s are medians of the three run-level medians / P95s. Individual timings, batch means and all three runs are retained; no outliers are removed.
 
-**P95 is a percentile of batch means, not individual edit latency.** It must not be read as the same statistic as the document-edit P95s elsewhere in the README. The author’s Table 1 P95 also summarizes 30 amortized samples; the Table 3 round-trip P95 is unavailable.
+**P95 is a percentile of batch means, not individual edit latency.** It must not be read as the same statistic as the document-edit P95s in the comparison summary. The author’s Table 1 P95 also summarizes 30 amortized samples; the Table 3 round-trip P95 is unavailable.
 
 | Original sample | Rex typeset batch P95, ms | Author line-break batch P95, ms | Rex native round-trip batch P95, ms | Rex round-trip run median range, ms |
 | --- | ---: | ---: | ---: | ---: |
@@ -146,7 +146,7 @@ npm run bench:texlode -- ../texlode-benchmark
 # Optional smoke run: append --quick; never use smoke results for the table.
 ```
 
-Default output is ignored `artifacts/tests/texlode-workloads.json`. To replace the published raw report, append `--output=docs/benchmarks/texlode-workloads.json` and regenerate the displayed timings / ratios from it. Temporary compilation directories and owned processes are cleaned up; the public checkout is external and is not a runtime dependency.
+Default output is ignored `artifacts/benchmarks/texlode-workloads.json`. To replace the published raw report, append `--output=docs/benchmarks/texlode-workloads.json` and regenerate the displayed timings / ratios from it. Temporary compilation directories and owned processes are cleaned up; the public checkout is external and is not a runtime dependency.
 
 ## Product preview measurements
 

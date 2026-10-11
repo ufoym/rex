@@ -1,6 +1,6 @@
 import { Renderer } from "./renderer.js";
-import { Session } from "./session.js";
-import { project, importProject, loadProject, saveProject, encodeProject } from "./project.js";
+import { Session } from "../compiler/session.js";
+import { project, importProject, loadProject, saveProject, encodeProject } from "../core/project.js";
 const $ = (s) => document.querySelector(s),
   editor = $("#editor"),
   status = $("#status"),

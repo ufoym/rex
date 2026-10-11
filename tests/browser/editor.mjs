@@ -1,12 +1,12 @@
-import { openBrowser } from "./browser-helper.mjs";
+import { openBrowser } from "../helpers/browser-helper.mjs";
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
-import { encodeProject, decodeProject, project } from "../src/project.js";
+import { encodeProject, decodeProject, project } from "../../src/core/project.js";
 import { PDFDocument, rgb } from "pdf-lib";
 import opentype from "opentype.js";
 const {browser, page, close} = await openBrowser({ viewport: { width: 1440, height: 1000 } });
 const waitForStoredFile = (file, source, active) => page.evaluate(async ({file, source, active}) => {
-  const {loadProject} = await import('./assets/project.js'), deadline = performance.now() + 10000;
+  const {loadProject} = await import('./assets/core/project.js'), deadline = performance.now() + 10000;
   do {
     const saved = await loadProject();
     if (saved?.files[file] === source && saved.active === active) return;
@@ -24,7 +24,7 @@ await page.waitForFunction(() => Boolean(window.rex?.session.warmed), {}, {polli
 await page.evaluate(() => window.rex.session.warmed);
 // Direct glyph matrices must retain the Canvas transform/clip and both font orientations.
 assert.ok(await page.evaluate(async () => {
-  const {Renderer} = await import('./assets/renderer.js'), SP = 65536 * 72.27 / 96;
+  const {Renderer} = await import('./assets/ui/renderer.js'), SP = 65536 * 72.27 / 96;
   const renderer = new Renderer(document.createElement('div'));
   const shape = new Path2D('M0 0 L600 0 L450 750 L0 600 Z');
   renderer.glyphPath = () => shape;
@@ -373,7 +373,7 @@ const localFont = triangle => {
       new opentype.Glyph({name: 'A', unicode: 65, advanceWidth: 600, path})]}).toArrayBuffer())];
 };
 const replacedFont = await page.evaluate(async fonts => {
-  const {Renderer} = await import('./assets/renderer.js'), renderer = new Renderer(document.createElement('div'));
+  const {Renderer} = await import('./assets/ui/renderer.js'), renderer = new Renderer(document.createElement('div'));
   const canvas = document.createElement('canvas'); canvas.width = canvas.height = 100;
   const ctx = canvas.getContext('2d'), filename = '/work/fonts/local.otf', sp = 65536 * 72.27 / 96;
   return fonts.map((bytes, index) => {

@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {bundles} from '../src/assets.js';
+import {bundles} from '../src/compiler/assets.js';
 process.chdir(fileURLToPath(new URL('../', import.meta.url)));
 const engineURL = 'https://github.com/jmckalex/mp-tikz-wasm/releases/download/v0.4.0/mp-tikz-wasm-0.4.0.tar.gz';
 const engineHash = '6cae11a63fee19b4298e71be83f9bbfaffc5d20cae69ccd23254fe7fce369dad';

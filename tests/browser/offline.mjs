@@ -1,4 +1,4 @@
-import { openBrowser } from "./browser-helper.mjs";
+import { openBrowser } from "../helpers/browser-helper.mjs";
 import assert from "node:assert/strict";
 const {page, close} = await openBrowser({isolation: false});
 try {

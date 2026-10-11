@@ -2,7 +2,7 @@ import { access, cp, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } 
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { bundles } from "../src/assets.js";
+import { bundles } from "../src/compiler/assets.js";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const vendors = [ "bibliography", "type1", "pdfjs", "opentype.js", "opentype-LICENSE", "pdf-lib.mjs", "pdf-lib-LICENSE.md", "ctablestack.sty"];

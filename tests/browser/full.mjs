@@ -1,4 +1,4 @@
-import {openBrowser} from './browser-helper.mjs';
+import {openBrowser} from '../helpers/browser-helper.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const {browser, page, close} = await openBrowser({basePath: "/rex/"});
@@ -11,7 +11,7 @@ await page.evaluate(() => {
   window.rev = 0;
   window.resetFull = () => {
     window.full?.terminate();
-    window.full = new Worker('./assets/background-worker.js', {type:'module'});
+    window.full = new Worker('./assets/workers/background-worker.js', {type:'module'});
     window.results = []; window.standby = false;
     full.onmessage = ({data}) => {
       if(data.type === 'standby-ready') window.standby = true;
@@ -176,15 +176,15 @@ const removedIndex = await page.evaluate(async ({source,style}) => {
 assert.ok(removedIndex.converged && !removedIndex.index.includes('Alpha') && !removedIndex.index.includes('Beta'), 'Removed index entries survived the standby release');
 console.log('Named indexes, local style, cache reuse, removed entries and offline MakeIndex passed.');
 for (const [name, files] of [
-  ['math', {'main.tex': await fs.readFile(new URL('../examples/math.tex', import.meta.url), 'utf8')}],
-  ['pictures', {'main.tex': await fs.readFile(new URL('../examples/pictures.tex', import.meta.url), 'utf8')}],
+  ['math', {'main.tex': await fs.readFile(new URL('../../examples/math.tex', import.meta.url), 'utf8')}],
+  ['pictures', {'main.tex': await fs.readFile(new URL('../../examples/pictures.tex', import.meta.url), 'utf8')}],
   ['bibliography', {
-    'main.tex': await fs.readFile(new URL('../examples/bibliography/main.tex', import.meta.url), 'utf8'),
-    'references.bib': await fs.readFile(new URL('../examples/bibliography/references.bib', import.meta.url), 'utf8'),
+    'main.tex': await fs.readFile(new URL('../../examples/bibliography/main.tex', import.meta.url), 'utf8'),
+    'references.bib': await fs.readFile(new URL('../../examples/bibliography/references.bib', import.meta.url), 'utf8'),
   }],
   ['project', {
-    'main.tex': await fs.readFile(new URL('../examples/project/main.tex', import.meta.url), 'utf8'),
-    'chapters/introduction.tex': await fs.readFile(new URL('../examples/project/chapters/introduction.tex', import.meta.url), 'utf8'),
+    'main.tex': await fs.readFile(new URL('../../examples/project/main.tex', import.meta.url), 'utf8'),
+    'chapters/introduction.tex': await fs.readFile(new URL('../../examples/project/chapters/introduction.tex', import.meta.url), 'utf8'),
   }],
 ]) {
   await page.evaluate(() => resetFull());

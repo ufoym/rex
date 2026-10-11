@@ -4,23 +4,23 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { load } from "./runtime-helper.mjs";
+import { load } from "../helpers/runtime-helper.mjs";
 import {
   engine,
   run,
   collect,
   liveDriver,
-} from "../src/runtime.js";
-import { decodeDisplayList, equivalent } from "../src/display-list.js";
+} from "../../src/compiler/runtime.js";
+import { decodeDisplayList, equivalent } from "../../src/protocol/display-list.js";
 import {
   wireDevices,
   mailbox,
   send,
   decodeFrame,
   encodeRequest,
-} from "../src/transport.js";
-import { Session } from "../src/session.js";
-import { paragraphs, changedSpan, safe } from "../src/document.js";
+} from "../../src/protocol/transport.js";
+import { Session } from "../../src/compiler/session.js";
+import { paragraphs, changedSpan, safe } from "../../src/core/document.js";
 const pre = String.raw`\documentclass{article}
 \usepackage{amsmath}
 \usepackage{xcolor}`;

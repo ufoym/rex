@@ -13,7 +13,7 @@ async function walk(dir) {
     else if (entry.isFile()) files.push(name);
   }
 }
-for (const dir of ["src", "scripts", "tests", "docs", "public", ".github"]) await walk(dir);
+for (const dir of ["src", "scripts", "tests", "benchmarks", "docs", "public", ".github"]) await walk(dir);
 files.push("README.md", "CONTRIBUTING.md", "THIRD_PARTY.md", "package.json", "package-lock.json");
 for (const file of files) {
   const text = await readFile(path.join(root, file), "utf8");
@@ -22,7 +22,7 @@ for (const file of files) {
     if (checked.status !== 0) throw Error(checked.stderr);
     const references = text.matchAll(/(?:\bfrom\s+|\bimport\s*\(\s*|\bnew URL\(\s*)["'](\.[^"']+)["']/g);
     for (const [, reference] of references) {
-      const browserAsset = file.startsWith("tests/") && /^\.\/(?:assets|vendor)\//.test(reference);
+      const browserAsset = (file.startsWith("tests/browser/") || file.startsWith("benchmarks/")) && /^\.\/(?:assets|vendor)\//.test(reference);
       const target = browserAsset ? path.resolve(root, "dist", reference) : path.resolve(root, path.dirname(file), reference);
       await access(target).catch(() => { throw Error(`Broken module/worker path: ${file} → ${reference}`); });
     }

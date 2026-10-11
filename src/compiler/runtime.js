@@ -1,11 +1,11 @@
-import createLuaTeX from "../vendor/engine/luatex.mjs";
-import { BundleSet, browserIO } from "../vendor/engine/vfs/bundle.js";
-import { mkdirp } from "../vendor/engine/vfs/lazyfs.js";
+import createLuaTeX from "../../vendor/engine/luatex.mjs";
+import { BundleSet, browserIO } from "../../vendor/engine/vfs/bundle.js";
+import { mkdirp } from "../../vendor/engine/vfs/lazyfs.js";
 import { bundles, texFiles } from "./assets.js";
 export { bundles, texFiles } from "./assets.js";
 export async function resources(
   io = browserIO(),
-  base = new URL("../vendor/", import.meta.url).href,
+  base = new URL("../../vendor/", import.meta.url).href,
 ) {
   const set = new BundleSet(io);
   await set.addAll(
@@ -18,7 +18,7 @@ export async function resources(
   await set.prefetchEager();
   const scripts = Object.fromEntries(
     await Promise.all(
-      texFiles.map(async (f) => [f, await io.fetch(new URL("./tex/" + f, import.meta.url).href)]),
+      texFiles.map(async (f) => [f, await io.fetch(new URL("../tex/" + f, import.meta.url).href)]),
     ),
   );
   scripts["ctablestack.sty"] = await io.fetch(base + "ctablestack.sty");

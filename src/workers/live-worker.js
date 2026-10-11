@@ -1,6 +1,6 @@
-import { resources, engine, run, liveDriver } from "./runtime.js";
-import { decodeDisplayList } from "./display-list.js";
-import { wireDevices, decodeFrame } from "./transport.js";
+import { resources, engine, run, liveDriver } from "../compiler/runtime.js";
+import { decodeDisplayList } from "../protocol/display-list.js";
+import { wireDevices, decodeFrame } from "../protocol/transport.js";
 let res;
 const sent = new Set();
 onmessage = async ({ data }) => {

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { wireDevices, mailbox, decodeFrame } from "../src/transport.js";
+import { wireDevices, mailbox, decodeFrame } from "../../src/protocol/transport.js";
 
 test("response framing survives split prefixes, large payloads and coalesced frames", () => {
   const json = new TextEncoder().encode(JSON.stringify({op: "result", status: "ok"}));

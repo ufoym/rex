@@ -1,11 +1,11 @@
-import { openBrowser } from "./browser-helper.mjs";
+import { openBrowser } from "../tests/helpers/browser-helper.mjs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { spawnSync, spawn } from "node:child_process";
-import { liveDriver } from "../src/runtime.js";
-import { decodeFrame, encodeRequest } from "../src/transport.js";
+import { liveDriver } from "../src/compiler/runtime.js";
+import { decodeFrame, encodeRequest } from "../src/protocol/transport.js";
 const nativeDirs = [];
 const {browser, page, close} = await openBrowser({ viewport: { width: 1440, height: 1000 } });
 try {
@@ -197,9 +197,9 @@ assert.ok(
   results[2].median < results[0].median * 2 + 1,
   "latency scales with document length",
 );
-await fs.mkdir("artifacts/tests", { recursive: true });
+await fs.mkdir("artifacts/benchmarks", { recursive: true });
 await fs.writeFile(
-  "artifacts/tests/performance.json",
+  "artifacts/benchmarks/performance.json",
   JSON.stringify(
     {
       date: new Date().toISOString(),

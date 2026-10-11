@@ -1,4 +1,4 @@
-import { packFiles, unpackFiles } from "./snapshot.js";
+import { packFiles, unpackFiles } from "../protocol/snapshot.js";
 const encoder = new TextEncoder(), decoder = new TextDecoder();
 export const textFile = name => /\.(tex|bib|sty|cls|txt|csv|ist|cfg|def)$/i.test(name);
 export function project(files, main, active = main) {

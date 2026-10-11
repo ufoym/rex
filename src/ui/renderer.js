@@ -1,7 +1,7 @@
-import * as opentype from "../vendor/opentype.js";
-import * as pdfjs from "../vendor/pdfjs/pdf.mjs";
+import * as opentype from "../../vendor/opentype.js";
+import * as pdfjs from "../../vendor/pdfjs/pdf.mjs";
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "../vendor/pdfjs/pdf.worker.mjs",
+  "../../vendor/pdfjs/pdf.worker.mjs",
   import.meta.url,
 ).href;
 const SP = (65536 * 72.27) / 96;
@@ -112,7 +112,7 @@ export class Renderer {
     for (const f of Object.values(dl.fonts || {}))
       if (!f.filename && !this.type1.has(f.name)) {
         const response = await fetch(
-          new URL("../vendor/type1/" + encodeURIComponent(f.name) + ".json", import.meta.url),
+          new URL("../../vendor/type1/" + encodeURIComponent(f.name) + ".json", import.meta.url),
         );
         if (!response.ok) throw Error("Font cannot be rendered live: " + f.name);
         this.type1.set(f.name, await response.json());

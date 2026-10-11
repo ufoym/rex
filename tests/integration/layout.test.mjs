@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import {load} from './runtime-helper.mjs';
-import {engine,run,collect,liveDriver} from '../src/runtime.js';
-import {mailbox,send,wireDevices,decodeFrame} from '../src/transport.js';
-import {decodeDisplayList,equivalent} from '../src/display-list.js';
-import {preamble} from '../src/document.js';
+import {load} from '../helpers/runtime-helper.mjs';
+import {engine,run,collect,liveDriver} from '../../src/compiler/runtime.js';
+import {mailbox,send,wireDevices,decodeFrame} from '../../src/protocol/transport.js';
+import {decodeDisplayList,equivalent} from '../../src/protocol/display-list.js';
+import {preamble} from '../../src/core/document.js';
 import {PDFDocument, rgb} from 'pdf-lib';
-import {changedSpan, paragraphs} from '../src/document.js';
-const reference=JSON.parse(await fs.readFile(new URL('./fixtures/layout-baseline.json',import.meta.url),'utf8'));
+import {changedSpan, paragraphs} from '../../src/core/document.js';
+const reference=JSON.parse(await fs.readFile(new URL('../fixtures/layout-baseline.json',import.meta.url),'utf8'));
 const res=await load();
 function canonical(page) {
   const items=a=>a.map(item=>{

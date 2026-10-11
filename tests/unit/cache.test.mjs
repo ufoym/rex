@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {scanPictures} from '../src/picture-cache.js';
-import {standbyKey,bodySnapshot} from '../src/full-pass.js';
-import {packFiles,unpackFiles} from '../src/snapshot.js';
-import {preamble,paragraphs} from '../src/document.js';
+import {scanPictures} from '../../src/compiler/picture-cache.js';
+import {standbyKey,bodySnapshot} from '../../src/compiler/full-pass.js';
+import {packFiles,unpackFiles} from '../../src/protocol/snapshot.js';
+import {preamble,paragraphs} from '../../src/core/document.js';
 const source=String.raw`\documentclass{article}
 \usepackage{tikz}
 \begin{document}

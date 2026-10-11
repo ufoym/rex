@@ -1,8 +1,8 @@
-import { resources, resourceState } from './runtime.js';
-import { FullPass, standbyKey, bodySnapshot, coldPass } from './full-pass.js';
-import { PictureCache, scanPictures } from './picture-cache.js';
-import { AuxiliaryTools } from './tools.js';
-import { digest, packFiles } from './snapshot.js';
+import { resources, resourceState } from '../compiler/runtime.js';
+import { FullPass, standbyKey, bodySnapshot, coldPass } from '../compiler/full-pass.js';
+import { PictureCache, scanPictures } from '../compiler/picture-cache.js';
+import { AuxiliaryTools } from '../compiler/tools.js';
+import { digest, packFiles } from '../protocol/snapshot.js';
 let res, wasmModule, standby, warmKey, cache = new PictureCache(), tools = new AuxiliaryTools();
 let running = false, pendingPreparation, pendingCompilation, activePass;
 let preparations = Promise.resolve();
@@ -45,7 +45,7 @@ onmessage = async ({data}) => {
     res ||= await resources();
     current();
     const t = performance.now(), initialStandby = standby, wasReady = standby?.isReady;
-    wasmModule ||= await res.set.io.fetch(new URL('../vendor/engine/luatex.wasm', import.meta.url).href).then(WebAssembly.compile);
+    wasmModule ||= await res.set.io.fetch(new URL('../../vendor/engine/luatex.wasm', import.meta.url).href).then(WebAssembly.compile);
     current();
     if (data.options?.standby === false) { standby?.close(); standby = null; warmKey = null; }
     let aux = data.aux || {}, output, previous = await signatureOf(aux), converged = false;

@@ -1,8 +1,8 @@
-import { digest, packFiles } from './snapshot.js';
+import { digest, packFiles } from '../protocol/snapshot.js';
 import { writeFiles } from './runtime.js';
 const decoder = new TextDecoder(), compiled = new Map();
 async function tool(type, res, log) {
-  const base = new URL('../vendor/bibliography/', import.meta.url);
+  const base = new URL('../../vendor/bibliography/', import.meta.url);
   const name = type === 'biber' ? 'biber' : 'busytex';
   let assets = compiled.get(name);
   if (!assets) {

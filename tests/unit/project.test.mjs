@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { project, encodeProject, decodeProject, importProject } from "../src/project.js";
-import { packFiles, unpackFiles } from "../src/snapshot.js";
-import { paragraphs, changedSpan } from "../src/document.js";
+import { project, encodeProject, decodeProject, importProject } from "../../src/core/project.js";
+import { packFiles, unpackFiles } from "../../src/protocol/snapshot.js";
+import { paragraphs, changedSpan } from "../../src/core/document.js";
 const main = "\\documentclass{article}\n\\begin{document}\n\\input{chapters/one}\n\\end{document}";
 test("a portable project preserves nested sources, binary dependencies and active file", () => {
   const files = {"main.tex": main, "chapters/one.tex": "Café $\\alpha$.", "image.png": new Uint8Array([0, 128, 255]), "notes.md": "Project notes"};

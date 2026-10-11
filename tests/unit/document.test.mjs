@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { paragraphs, changedSpan } from "../src/document.js";
+import { paragraphs, changedSpan } from "../../src/core/document.js";
 
 test("long-document changes preserve offsets across chunk boundaries and Unicode", () => {
   const before = "\\begin{document}\n" + Array.from({length: 12}, (_, i) =>
