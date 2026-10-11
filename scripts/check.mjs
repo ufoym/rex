@@ -22,7 +22,8 @@ for (const file of files) {
     if (checked.status !== 0) throw Error(checked.stderr);
     const references = text.matchAll(/(?:\bfrom\s+|\bimport\s*\(\s*|\bnew URL\(\s*)["'](\.[^"']+)["']/g);
     for (const [, reference] of references) {
-      const browserAsset = (file.startsWith("tests/browser/") || file.startsWith("benchmarks/")) && /^\.\/(?:assets|vendor)\//.test(reference);
+      const browserAsset = ["tests/browser/", "benchmarks/", "public/"].some(prefix => file.startsWith(prefix))
+        && /^\.\/(?:assets|vendor)\//.test(reference);
       const target = browserAsset ? path.resolve(root, "dist", reference) : path.resolve(root, path.dirname(file), reference);
       await access(target).catch(() => { throw Error(`Broken module/worker path: ${file} → ${reference}`); });
     }
