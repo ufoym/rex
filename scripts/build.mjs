@@ -3,9 +3,11 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundles } from "../src/compiler/assets.js";
+import { buildEditor } from "./editor-vendor.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const vendors = [ "bibliography", "type1", "pdfjs", "opentype.js", "opentype-LICENSE", "pdf-lib.mjs", "pdf-lib-LICENSE.md", "ctablestack.sty"];
+await buildEditor();
+const vendors = [ "codemirror.mjs", "codemirror-LICENSE.txt", "bibliography", "type1", "pdfjs", "opentype.js", "opentype-LICENSE", "pdf-lib.mjs", "pdf-lib-LICENSE.md", "ctablestack.sty"];
 const engineFiles = ["luatex.mjs", "luatex.wasm", "logger.js", "vfs/bundle.js", "vfs/lazyfs.js", "LICENSE", "NOTICE.md", "licenses", "bundles/hot.json", ...bundles.map(name => "bundles/" + name)];
 for (const name of [...vendors, ...engineFiles.map(name => "engine/" + name)]) {
   try { await access(path.join(root, "vendor", name)); }

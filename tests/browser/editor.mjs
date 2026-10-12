@@ -1,4 +1,4 @@
-import { openBrowser } from "../helpers/browser-helper.mjs";
+import { openBrowser, replaceSource } from "../helpers/browser-helper.mjs";
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
 import { encodeProject, decodeProject, project } from "../../src/core/project.js";
@@ -83,7 +83,7 @@ await page.evaluate(async () => {
     "Edit this beautiful paragraph",
   );
   await s.edit(next);
-  document.querySelector("#editor").value = next;
+  rex.editor.dispatch({changes: {from: 0, to: rex.editor.state.doc.length, insert: next}});
   clearTimeout(s.timer);
 });
 assert.ok(
@@ -100,25 +100,6 @@ console.log(
 );
 await fs.mkdir("artifacts/tests", { recursive: true });
 await page.screenshot({ path: "artifacts/tests/editor.png" });
-await page.click("#benchmark");
-await page.waitForFunction(
-  () => !document.querySelector("#benchmark").disabled,
-  {},
-  { timeout: 120000 },
-);
-console.log("benchmark", await page.evaluate(() => rex.benchmark));
-await fs.writeFile(
-  "artifacts/tests/browser.json",
-  JSON.stringify(
-    await page.evaluate(() => ({
-      benchmark: rex.benchmark,
-      timing: rex.session.lastTiming,
-      userAgent: navigator.userAgent,
-    })),
-    null,
-    2,
-  ),
-);
 // Math uses the original Type 1 outlines on the live path.
 await page.evaluate(async () => {
   const s = rex.session;
@@ -235,39 +216,41 @@ await page.evaluate(() => rex.session.warmed);
 assert.equal(await page.inputValue("#filename"), "chapters/body.tex");
 assert.ok(await page.evaluate(() => rex.session.layout.converged && rex.session.layout.indexRuns === 1), "Imported project's index did not converge");
 const editedChild = child.replace("native text", "edited text");
-await page.fill("#editor", editedChild);
+await replaceSource(page, editedChild);
 await page.waitForFunction(() => rex.session.lastTiming && rex.renderer.patches.size > 0, {}, {timeout: 10000});
 assert.equal(await page.evaluate(() => rex.session.source), projectMain);
 assert.ok(await page.evaluate(() => [...rex.renderer.patches.values()].some(p => p.unit.file.endsWith("/chapters/body.tex"))), "Child file did not update live");
-await page.evaluate(() => {clearTimeout(rex.session.timer); const editor = document.querySelector("#editor"); editor.setSelectionRange(2, 2);});
+await page.evaluate(() => {clearTimeout(rex.session.timer); rex.editor.dispatch({selection: {anchor: 2}});});
 await page.click("#locate");
 assert.equal(await page.locator(".source-marker").count(), 1);
 await page.selectOption("#filename", "main.tex");
 const click = await page.evaluate(() => {
   const unit = rex.session.layoutFiles["chapters/body.tex"].units.find(Boolean), place = unit.placements[0];
   const rect = rex.renderer.views.get(place.page).host.getBoundingClientRect(), sp = 65536 * 72.27 / 96;
-  return {x: rect.left + (place.x + 65536) / sp, y: rect.top + (place.y - place.h / 2) / sp};
+  const scale = rect.width / (rex.renderer.pages[place.page - 1].page_width / sp);
+  return {x: rect.left + (place.x + 65536) / sp * scale, y: rect.top + (place.y - place.h / 2) / sp * scale};
 });
 await page.mouse.dblclick(click.x, click.y);
 assert.equal(await page.inputValue("#filename"), "chapters/body.tex");
 await waitForStoredFile('chapters/body.tex', editedChild, 'chapters/body.tex');
+await page.locator("#download-menu > summary").click();
 const download = page.waitForEvent("download"); await page.click("#save-project");
 const exported = decodeProject(new Uint8Array(await fs.readFile(await (await download).path())));
 assert.equal(exported.files["chapters/body.tex"], editedChild); assert.deepEqual(exported.files["images/pixel.png"], new Uint8Array(png));
 await page.reload();
 await page.waitForFunction(() => Boolean(window.rex?.session.warmed), {}, {timeout: 120000, polling:100}); await page.evaluate(() => rex.session.warmed);
-assert.equal(await page.inputValue("#editor"), editedChild);
+assert.equal(await page.evaluate(() => rex.editor.state.doc.toString()), editedChild);
 assert.deepEqual(await page.evaluate(() => [...rex.session.files["images/pixel.png"]]), png);
 assert.ok(await page.evaluate(() => rex.session.layout.converged));
 // Autosave keeps incomplete source during edits, including drafts that cannot compile.
 await page.selectOption("#filename", "main.tex");
 const draft = projectMain.replace("\\begin{document}", "");
-await page.fill("#editor", draft);
+await replaceSource(page, draft);
 await waitForStoredFile('main.tex', draft, 'main.tex');
 await page.reload();
-await page.waitForFunction(draft => document.querySelector('#editor').value === draft && /failed/.test(document.querySelector('#status').textContent), draft, {polling:100});
+await page.waitForFunction(draft => rex.editor.state.doc.toString() === draft && /failed/.test(document.querySelector('#status').textContent), draft, {polling:100});
 assert.deepEqual(await page.evaluate(() => [...rex.session.files['images/pixel.png']]), png);
-await page.fill('#editor', projectMain);
+await replaceSource(page, projectMain);
 await page.waitForFunction(() => rex.session.layout?.revision === rex.session.revision && rex.session.layout.converged, {}, {polling:100});
 console.log("Project persistence, incomplete drafts, portable export, child-file live edits, index generation and bidirectional paragraph navigation passed.");
 // Exercise new preview paths before the idle full pass can settle their layout.

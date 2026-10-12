@@ -34,11 +34,11 @@ npm run setup
 npm run dev
 ```
 
-Open [localhost:8080](http://127.0.0.1:8080). Edit the built-in document or import a project from [examples/](examples/). **Open folder** preserves nested paths; the file selector edits imported source files. **Save project** downloads a portable `.rex` file containing every source and asset. Use **Compile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
+Open [localhost:8080](http://127.0.0.1:8080). Edit the built-in document or import a project from [examples/](examples/). **Open → Folder…** preserves nested paths; the file selector edits imported source files. **Download → Project (.rex)** saves a portable file containing every source and asset. The preview updates as you type; use **Recompile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
 
 To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
 
-Use **Theme** in the toolbar to choose **System**, **Light** or **Dark**. The choice survives refresh; **System** follows your device's appearance. PDF pages retain their original colours in every theme.
+Use the sun / moon icon to switch between light and dark themes. The choice survives refresh; **Help → Use device theme** restores automatic switching. PDF pages retain their original colours in every theme.
 
 For GitHub Pages, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions** in your repository. The [Pages workflow](.github/workflows/pages.yml) builds and verifies the site, then publishes `dist/` on every push to `main`. Once deployment succeeds, open the site URL shown in **Settings → Pages**. You can also run **Deploy GitHub Pages** manually from the Actions tab on `main`.
 
@@ -61,7 +61,7 @@ npm run bench  # requires native lualatex
 | `examples/` | Small projects to import and compile |
 | `docs/` | User guide, architecture, comparisons and benchmark evidence |
 
-Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. ES modules are served directly, with no bundler or application backend.
+Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. Application ES modules are served directly; the editor dependency is bundled during build, with no application backend.
 
 Read the [user guide](docs/guide.md), [project structure](docs/architecture.md), [feature and performance comparisons](docs/comparison.md), [benchmark methodology](docs/performance.md) and [contribution guidelines](CONTRIBUTING.md).
 

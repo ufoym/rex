@@ -9,50 +9,74 @@
   </head>
   <body>
     <header>
-      <div class="brand">R<span>ex</span><small>Real-time TeX</small></div>
-      <div class="actions">
-        <select id="theme" aria-label="Color theme">
-          <option value="system">Theme: System</option>
-          <option value="light">Theme: Light</option>
-          <option value="dark">Theme: Dark</option>
-        </select>
-        <label class="button"
-          >Open project<input id="open" type="file" multiple hidden /></label
-        ><label class="button folder-button">Open folder<input id="open-folder" type="file" webkitdirectory multiple hidden /></label
-        ><button id="save">Save file</button><button id="save-project">Save project</button><button id="export">Export PDF</button
-        ><button id="compile" class="primary">Compile <kbd>⌘ ↵</kbd></button>
-      </div>
+      <div class="brand">Rex<small>LaTeX, as you type.</small></div>
+      <nav class="actions" aria-label="Project actions">
+        <details class="menu" id="open-menu">
+          <summary>Open <span class="chevron" aria-hidden="true">⌄</span></summary>
+          <div class="menu-panel">
+            <button id="choose-files">Files…<small>A .tex document, its assets, or a .rex project</small></button>
+            <button id="choose-folder">Folder…<small>All project files, keeping subfolders</small></button>
+          </div>
+        </details>
+        <input id="open" type="file" multiple hidden />
+        <input id="open-folder" type="file" webkitdirectory multiple hidden />
+        <details class="menu" id="download-menu">
+          <summary>Download <span class="chevron" aria-hidden="true">⌄</span></summary>
+          <div class="menu-panel">
+            <button id="export" disabled>PDF<small>The compiled document</small></button>
+            <button id="save-project">Project (.rex)<small>All source files and assets; reopen in Rex</small></button>
+            <button id="save">Current source file<small>The file you are editing</small></button>
+          </div>
+        </details>
+        <button id="compile" class="primary" title="Recompile the entire document (Ctrl/⌘ + Enter)">Recompile</button>
+        <button id="theme" class="icon-button" aria-label="Switch to dark theme" title="Switch to dark theme">
+          <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/></svg>
+          <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+        </button>
+        <details class="menu" id="help-menu">
+          <summary class="icon-button" aria-label="Help" title="Help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 3h.01"/></svg></summary>
+          <div class="menu-panel help-panel">
+            <strong>Start writing</strong>
+            <p>Edit the example or open your own files. The preview updates automatically.</p>
+            <p>Your project is saved in this browser. Download a project to keep a backup or move to another device.</p>
+            <dl><dt>Find / replace</dt><dd>Ctrl/⌘ F</dd><dt>Indent / unindent</dt><dd>Tab / Shift Tab</dd><dt>Recompile</dt><dd>Ctrl/⌘ Enter</dd><dt>Locate paragraph</dt><dd>Ctrl/⌘ Alt J</dd></dl>
+            <p>Double-click a paragraph in the preview to edit its source. Press Esc to clear a highlight.</p>
+            <button id="system-theme">Use device theme</button>
+          </div>
+        </details>
+      </nav>
     </header>
     <main>
-      <section class="editor-pane">
+      <section class="editor-pane" aria-label="Source editor">
         <div class="pane-bar">
-          <select id="filename" aria-label="Project file"></select
-          ><span class="subtle">Main: <span id="main-file">main.tex</span></span>
+          <div class="file-context"><span class="pane-label">Source</span><select id="filename" aria-label="Project file"></select></div>
+          <button id="search" class="icon-button" aria-label="Find and replace" title="Find and replace (Ctrl/⌘ + F)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
         </div>
-        <textarea
-          id="editor"
-          spellcheck="false"
-          aria-label="LaTeX source"
-          autocapitalize="off"
-          autocomplete="off"
-        ></textarea>
-        <div class="editor-footer">
-          <span id="position">Ln 1, Col 1</span
-          ><span>Your project stays in this browser</span>
-        </div>
+        <div id="editor"></div>
+        <div class="editor-footer"><span id="position">Ln 1, Col 1</span><span id="storage-status">Saved in this browser</span></div>
       </section>
-      <section class="preview-pane">
+      <section class="preview-pane" aria-label="Document preview">
         <div class="pane-bar">
-          <span>Preview</span><div class="actions"><button id="locate" title="Show this paragraph (Ctrl/⌘ + Alt + J)">Show in preview</button><button id="benchmark">Benchmark</button></div>
+          <div class="preview-context"><span class="pane-label">Preview</span><span class="subtle auto-preview">Updates as you type</span></div>
+          <div class="actions">
+            <button id="clear-location" hidden title="Clear the highlight and return to your previous position (Esc)">Back to preview</button>
+            <button id="locate" title="Highlight the paragraph at the editor cursor (Ctrl/⌘ + Alt + J)">Locate paragraph</button>
+          </div>
         </div>
-        <div id="preview"><div class="welcome">Loading the typesetting engine…</div></div>
+        <div id="preview"><div class="welcome"><strong>Your preview will appear here</strong><p>Preparing the typesetting engine. You can start editing now.</p></div></div>
       </section>
     </main>
     <footer>
-      <span class="dot"></span><span id="status">Preparing…</span
-      ><button id="toggle-log">Compilation log</button>
+      <span class="dot" aria-hidden="true"></span><span id="status" role="status">Preparing…</span>
+      <details class="menu" id="tools-menu">
+        <summary>Tools <span class="chevron" aria-hidden="true">⌃</span></summary>
+        <div class="menu-panel">
+          <button id="toggle-log" aria-expanded="false" aria-controls="log">Show compilation log<small>Details when a document fails to compile</small></button>
+          <div class="diagnostics"><strong>Performance check</strong><p>Measures 300 paragraph compilations on this device. Editing pauses while it runs.</p><button id="benchmark">Run performance check</button><output id="benchmark-result" role="status"></output></div>
+        </div>
+      </details>
     </footer>
-    <pre id="log" hidden></pre>
+    <pre id="log" hidden aria-label="Compilation log"></pre>
     <script type="module" src="./assets/ui/app.js"></script>
   </body>
 </html>

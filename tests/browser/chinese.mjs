@@ -20,7 +20,7 @@ try {
     const s = rex.session;
     await s.edit(s.source.replace("修改这段文字", "编辑这段文字"));
     clearTimeout(s.timer);
-    document.querySelector("#editor").value = s.source;
+    rex.editor.dispatch({changes: {from: 0, to: rex.editor.state.doc.length, insert: s.source}});
     return {patches: rex.renderer.patches.size, paint: s.lastTiming?.paint, log: document.querySelector("#log").textContent};
   });
   assert.equal(live.patches, 1, "Chinese edit did not paint live: " + live.log);
@@ -36,16 +36,16 @@ try {
       timings.push(s.lastTiming?.paint);
       if (rex.renderer.patches.size !== 1) throw Error("Repeated Chinese edit lost its live patch");
     }
-    document.querySelector("#editor").value = s.source;
+    rex.editor.dispatch({changes: {from: 0, to: rex.editor.state.doc.length, insert: s.source}});
     return timings;
   });
   assert.ok(warm.every(Number.isFinite));
   console.log("Chinese paint timings (ms):", {first: live.paint, warm});
   await page.screenshot({path: "artifacts/tests/chinese.png", fullPage: true});
-  await page.evaluate(() => document.querySelector("#editor").dispatchEvent(new Event("input")));
   await page.click("#compile");
   await page.waitForFunction(() => rex.session.layout?.revision === rex.session.revision && !rex.session.busy);
   const download = page.waitForEvent("download");
+  await page.locator("#download-menu > summary").click();
   await page.click("#export");
   const pdf = await fs.readFile(await (await download).path());
   assert.equal(pdf.subarray(0, 4).toString(), "%PDF");

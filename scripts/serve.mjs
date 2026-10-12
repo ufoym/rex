@@ -50,6 +50,7 @@ export async function startServer({ source = false, isolation = true, port = 0, 
   };
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv.includes("--source")) await (await import("./editor-vendor.mjs")).buildEditor();
   const server = await startServer({ source: process.argv.includes("--source"), isolation: !process.env.REX_NO_ISOLATION, port: Number(process.env.PORT || 8080) });
   console.log(server.url);
   for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, async () => { await server.close(); });

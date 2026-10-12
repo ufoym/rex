@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, mkdir } from "node:fs/promises";
 import { webkit, devices } from "playwright";
-import { openBrowser } from "../helpers/browser-helper.mjs";
+import { openBrowser, replaceSource } from "../helpers/browser-helper.mjs";
 
 const {page, close, stopHosting} = await openBrowser({isolation: false, basePath: "/rex/",
   browserType: webkit, contextOptions: devices["iPhone 13"]});
@@ -25,6 +25,7 @@ try {
   assert.ok(await page.evaluate(() => startupStatuses.some(s => /Loading engine resources \d+\/\d+/.test(s))),
     "Startup must show resource download progress");
   const downloadPromise = page.waitForEvent("download");
+  await page.locator("#download-menu > summary").click();
   await page.locator("#export").click();
   const download = await downloadPromise;
   assert.equal((await readFile(await download.path())).subarray(0, 4).toString(), "%PDF");
@@ -37,7 +38,7 @@ try {
   await page.evaluate(() => rex.session.warmed);
   assert.equal(await page.evaluate(() => rex.session.live.closed), false,
     "Offline warming closed the live engine: " + await page.locator("#log").textContent());
-  await page.locator("#editor").fill(await page.locator("#editor").inputValue().then(s => s.replace("Edit this paragraph", "Edit this offline paragraph")));
+  await replaceSource(page, await page.evaluate(() => rex.editor.state.doc.toString()).then(s => s.replace("Edit this paragraph", "Edit this offline paragraph")));
   await page.waitForFunction(() => window.rex?.session.lastTiming);
   await mkdir("artifacts/tests", {recursive: true});
   await page.screenshot({path: "artifacts/tests/webkit-mobile.png", fullPage: true});

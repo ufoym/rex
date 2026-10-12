@@ -1,9 +1,9 @@
 import { starterDocument } from "../core/starter.js";
 import { Renderer } from "./renderer.js";
+import { sourceEditor } from "./editor.js";
 import { Session } from "../compiler/session.js";
 import { project, importProject, loadProject, saveProject, encodeProject } from "../core/project.js";
 const $ = (s) => document.querySelector(s),
-  editor = $("#editor"),
   status = $("#status"),
   log = $("#log");
 
@@ -32,38 +32,89 @@ async function init() {
   const renderer = new Renderer($("#preview"));
   const session = new Session(
     renderer,
-    (s) => (status.textContent = s),
+    s => { status.textContent = s; updateExport(); },
     addLog,
   );
-  window.rex = { session, renderer };
-  let active, saveTimer;
-  const persist = () => saveProject({files: session.files, main: session.main, active}).catch(error => {
-    addLog(String(error)); status.textContent = "Browser storage unavailable · save your project to keep it";
+  let active, saveTimer, previewPosition;
+  const fileStates = new Map();
+  const source = sourceEditor($("#editor"), {
+    onChange: text => {
+      session.edit(text, active);
+      updateExport();
+      clearLocation();
+      $("#storage-status").textContent = "Saving…";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {saveTimer = null; persist();}, 500);
+    },
+    onSelection: () => position(), onCompile: () => session.full(), onLocate: () => locate(),
   });
+  const editor = source.view;
+  window.rex = { session, renderer, editor };
+  async function persist() {
+    try {
+      await saveProject({files: session.files, main: session.main, active});
+      if (!saveTimer) $("#storage-status").textContent = "Saved in this browser";
+    } catch (error) {
+      addLog(String(error));
+      $("#storage-status").textContent = "Not saved · download a backup";
+      status.textContent = "Browser storage unavailable · download your project to keep it";
+    }
+  }
+  function updateExport() {
+    $("#export").disabled = !session.layout?.pdf || session.layout.revision !== session.revision || session.busy;
+    if (previewPosition && !renderer.container.querySelector(".source-marker")) clearLocation();
+  }
   function selectFile(name) {
-    active = name; editor.value = session.files[name]; $("#filename").value = name;
+    if (active) fileStates.set(active, editor.state);
+    active = name;
+    const saved = fileStates.get(name);
+    source.select(saved?.doc.toString() === session.files[name] ? saved : source.state(session.files[name]));
+    $("#filename").value = name;
+    clearLocation();
     position();
   }
   function openProject(value) {
     clearTimeout(saveTimer);
+    saveTimer = null;
+    active = null;
+    fileStates.clear();
+    clearLocation();
     session.setFiles(value.files, value.main);
     $("#filename").replaceChildren(...Object.keys(value.files).filter(name => typeof value.files[name] === "string").map(name => {
-      const option = document.createElement("option"); option.value = name; option.textContent = name; return option;
+      const option = document.createElement("option"); option.value = name;
+      option.textContent = name === value.main ? `${name} · main` : name; return option;
     }));
-    $("#main-file").textContent = value.main;
     selectFile(value.active);
   }
   let restored;
   try { restored = await loadProject(); } catch (error) { addLog(String(error)); }
-  openProject(restored || project({"main.tex": localStorage.getItem("rex-source") || starterDocument}, "main.tex"));
-  editor.addEventListener("input", () => {
-    session.edit(editor.value, active);
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(persist, 500);
-  });
-  document.addEventListener("visibilitychange", () => { if (document.hidden) { clearTimeout(saveTimer); persist(); } });
+  let legacy;
+  try { legacy = localStorage.getItem("rex-source"); } catch {}
+  openProject(restored || project({"main.tex": legacy || starterDocument}, "main.tex"));
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { clearTimeout(saveTimer); saveTimer = null; persist(); } });
   $("#compile").onclick = () => session.full();
-  $("#toggle-log").onclick = () => (log.hidden = !log.hidden);
+  $("#search").onclick = source.search;
+  $("#toggle-log").onclick = () => {
+    log.hidden = !log.hidden;
+    $("#toggle-log").firstChild.textContent = log.hidden ? "Show compilation log" : "Hide compilation log";
+    $("#toggle-log").setAttribute("aria-expanded", String(!log.hidden));
+  };
+  $("#choose-files").onclick = () => $("#open").click();
+  $("#choose-folder").onclick = () => $("#open-folder").click();
+  const menus = [...document.querySelectorAll("details.menu")];
+  for (const menu of menus) menu.addEventListener("toggle", () => {
+    if (menu.open) for (const other of menus) if (other !== menu) other.open = false;
+  });
+  document.addEventListener("click", event => {
+    for (const menu of menus) {
+      if (!menu.contains(event.target) || (event.target.closest("button") && event.target.id !== "benchmark")) menu.open = false;
+    }
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    for (const menu of menus) if (menu.open) {menu.open = false; menu.querySelector("summary").focus();}
+    clearLocation(true);
+  });
   function download(data, name, type) {
     const url = URL.createObjectURL(new Blob([data], { type }));
     const a = document.createElement("a");
@@ -72,7 +123,7 @@ async function init() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
-  $("#save").onclick = () => download(editor.value, active, "text/plain");
+  $("#save").onclick = () => download(editor.state.doc.toString(), active, "text/plain");
   $("#save-project").onclick = () => download(encodeProject({files: session.files, main: session.main, active}), session.main.replace(/\.tex$/, ".rex"), "application/octet-stream");
   $("#filename").onchange = event => { selectFile(event.target.value); persist(); };
   $("#export").onclick = () => {
@@ -95,13 +146,26 @@ async function init() {
     finally { e.target.value = ""; }
   };
   $("#open-folder").onchange = $("#open").onchange;
+  function clearLocation(restore = false) {
+    renderer.container.querySelector(".source-marker")?.remove();
+    if (restore && previewPosition) renderer.container.scrollTo(previewPosition);
+    previewPosition = null;
+    $("#clear-location").hidden = true;
+  }
+  function highlight(unit) {
+    previewPosition ||= {top: renderer.container.scrollTop, left: renderer.container.scrollLeft};
+    renderer.locate(unit);
+    $("#clear-location").hidden = !renderer.container.querySelector(".source-marker");
+  }
+  $("#clear-location").onclick = () => clearLocation(true);
   const locate = () => {
     const mapping = session.layoutFiles?.[active], spans = session.currentSpans.get(active);
-    const index = spans?.findIndex(span => editor.selectionStart >= span.start && editor.selectionStart <= span.end);
+    const cursor = editor.state.selection.main.head;
+    const index = spans?.findIndex(span => cursor >= span.start && cursor <= span.end);
     const unit = mapping?.blocks[index]?.[0]?.unit;
     if (session.contextDirty) { status.textContent = "Compile to refresh source locations"; return; }
     if (!unit) { status.textContent = "No paragraph location available here"; return; }
-    renderer.locate(unit);
+    highlight(unit);
   };
   $("#locate").onclick = locate;
   renderer.onSource = unit => {
@@ -112,47 +176,30 @@ async function init() {
     const span = session.currentSpans.get(file)?.[index];
     if (!span || session.contextDirty) { status.textContent = "Compile to refresh source locations"; return; }
     selectFile(file);
-    editor.focus(); editor.setSelectionRange(span.start, span.end);
-    const lineHeight = parseFloat(getComputedStyle(editor).lineHeight);
-    editor.scrollTop = Math.max(0, (span.line - 3) * lineHeight);
-    position(); renderer.locate(unit); persist();
-  };
-  editor.onkeydown = (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === "j") {
-      e.preventDefault(); locate(); return;
-    }
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      session.full();
-    }
-    if (e.key === "Tab") {
-      e.preventDefault();
-      editor.setRangeText(
-        "  ",
-        editor.selectionStart,
-        editor.selectionEnd,
-        "end",
-      );
-      editor.dispatchEvent(new Event("input"));
-    }
+    editor.dispatch({selection: {anchor: span.start, head: span.end}, scrollIntoView: true});
+    editor.focus();
+    position(); highlight(unit); persist();
   };
   function position() {
-    const s = editor.value.slice(0, editor.selectionStart).split("\n");
-    $("#position").textContent = `Ln ${s.length}, Col ${s.at(-1).length + 1}`;
+    const cursor = editor.state.selection.main.head, line = editor.state.doc.lineAt(cursor);
+    $("#position").textContent = `Ln ${line.number}, Col ${cursor - line.from + 1}`;
   }
-  editor.addEventListener("keyup", position);
-  editor.addEventListener("click", position);
   $("#benchmark").onclick = async () => {
     const button = $("#benchmark");
     button.disabled = true;
+    source.editable(false);
+    const controls = ["#choose-files", "#choose-folder", "#filename", "#compile"];
+    for (const selector of controls) $(selector).disabled = true;
+    $("#benchmark-result").textContent = "Running…";
     clearTimeout(session.timer);
     try {
       const live = session.live,
         unit = session.units?.find(
           (u) => u?.kind === "par" && u.placements?.length,
         ),
-        index = session.units.indexOf(unit);
-      if (!unit || !live) throw Error("Wait for the initial compilation");
+        index = session.units?.indexOf(unit);
+      if (!unit || !live || session.busy || !session.warmed) throw Error("Wait for compilation to finish, then try again");
+      await session.warmed;
       const source = session.layoutSpans[index].text;
       for (let i = 0; i < 20; i++) await live.compile(unit, source);
       const values = [];
@@ -168,10 +215,15 @@ async function init() {
         withinFrame: values[285] < 16.67,
       };
       status.textContent = `300 paragraph compilations · median ${values[150].toFixed(2)} ms · P95 ${values[285].toFixed(2)} ms`;
+      $("#benchmark-result").textContent = `Typical: ${values[150].toFixed(2)} ms · 95% under ${values[285].toFixed(2)} ms. ${values[285] < 16.67 ? "Within a 60 Hz frame budget." : "Slower than a 60 Hz frame."}`;
     } catch (e) {
       status.textContent = String(e);
+      $("#benchmark-result").textContent = String(e);
     } finally {
       button.disabled = false;
+      source.editable(true);
+      for (const selector of controls) $(selector).disabled = false;
+      if (session.layout?.revision !== session.revision) session.schedule();
     }
   };
   if ("serviceWorker" in navigator)

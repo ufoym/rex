@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {bundles} from '../src/compiler/assets.js';
+import {buildEditor} from './editor-vendor.mjs';
 process.chdir(fileURLToPath(new URL('../', import.meta.url)));
 const engineURL = 'https://github.com/jmckalex/mp-tikz-wasm/releases/download/v0.4.0/mp-tikz-wasm-0.4.0.tar.gz';
 const engineHash = '6cae11a63fee19b4298e71be83f9bbfaffc5d20cae69ccd23254fe7fce369dad';
@@ -182,5 +183,6 @@ try {
   await download('https://mirrors.mit.edu/CTAN/install/macros/luatex/generic/ctablestack.tds.zip', path.join(temp, 'ctablestack.tds.zip'), 'a975aa44f20d7705b4e2d41a63008d00e4439143999cb12acce75f24d5d56943');
   command('unzip', ['-q', path.join(temp, 'ctablestack.tds.zip'), '-d', path.join(temp, 'ctablestack')]);
   await copyFile(path.join(temp, 'ctablestack/tex/luatex/ctablestack/ctablestack.sty'), 'vendor/ctablestack.sty');
+  await buildEditor();
   console.log('Ready: npm run dev, or npm run build to produce dist/.');
 } finally { await rm(temp, {recursive:true, force:true}); }

@@ -6,14 +6,15 @@ import { openBrowser } from "../helpers/browser-helper.mjs";
 for (const browserType of [chromium, webkit]) {
   const {page, close} = await openBrowser({browserType, basePath: "/rex/",
     viewport: {width: 1440, height: 1000}, contextOptions: {colorScheme: "dark"}});
-  const theme = page.getByRole("combobox", {name: "Color theme"});
+  const theme = page.locator("#theme");
+  const deviceTheme = async () => {await page.locator("#help-menu > summary").click(); await page.click("#system-theme");};
   const current = () => page.evaluate(() => document.documentElement.dataset.theme);
   try {
     assert.equal(await current(), "dark");
-    assert.equal(await theme.inputValue(), "system");
+    assert.equal(await theme.getAttribute("aria-label"), "Switch to light theme");
     await page.emulateMedia({colorScheme: "light"});
     await page.waitForFunction(() => document.documentElement.dataset.theme === "light");
-    await theme.selectOption("dark");
+    await theme.click();
     assert.equal(await current(), "dark");
     assert.equal(await page.evaluate(() => localStorage.getItem("rex-theme")), "dark");
 
@@ -28,13 +29,13 @@ for (const browserType of [chromium, webkit]) {
     });
     await page.reload();
     assert.equal(await page.evaluate(() => window.initialTheme), "dark");
-    assert.equal(await theme.inputValue(), "dark");
+    assert.equal(await theme.getAttribute("aria-label"), "Switch to light theme");
     await page.emulateMedia({colorScheme: "dark"});
-    await theme.selectOption("light");
+    await theme.click();
     assert.equal(await current(), "light");
     await page.reload();
     assert.equal(await current(), "light");
-    await theme.selectOption("system");
+    await deviceTheme();
     assert.equal(await current(), "dark");
     await page.emulateMedia({colorScheme: "light"});
     await page.waitForFunction(() => document.documentElement.dataset.theme === "light");
@@ -43,7 +44,7 @@ for (const browserType of [chromium, webkit]) {
     await page.waitForFunction(() => window.rex?.renderer.views.get(1)?.ready);
     const pixels = () => page.evaluate(() => rex.renderer.views.get(1).canvas.toDataURL());
     const before = await pixels();
-    await theme.selectOption("dark");
+    await theme.click();
     const styles = await page.evaluate(() => Object.fromEntries(
       ["header", "#editor", ".pane-bar", "#preview", "footer", ".page"].map(selector =>
         [selector, getComputedStyle(document.querySelector(selector)).backgroundColor])));
@@ -57,7 +58,7 @@ for (const browserType of [chromium, webkit]) {
     await page.screenshot({path: `artifacts/tests/theme-${browserType.name()}.png`});
     await page.setViewportSize({width: 390, height: 844});
     assert.ok(await theme.isVisible());
-    await theme.selectOption("light");
+    await theme.click();
     assert.equal(await current(), "light");
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
 
@@ -67,7 +68,7 @@ for (const browserType of [chromium, webkit]) {
     });
     await page.reload();
     assert.equal(await current(), "light");
-    await theme.selectOption("dark");
+    await theme.click();
     assert.equal(await current(), "dark");
     console.log(`${browserType.name()}: system theme, saved preference, early startup, PDF colours, mobile and restricted storage passed.`);
   } finally {

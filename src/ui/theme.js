@@ -9,16 +9,25 @@
   const apply = () => {
     document.documentElement.dataset.theme = preference === "system"
       ? (system.matches ? "dark" : "light") : preference;
+    const button = document.querySelector("#theme");
+    if (button) {
+      const label = `Switch to ${document.documentElement.dataset.theme === "dark" ? "light" : "dark"} theme`;
+      button.title = label;
+      button.setAttribute("aria-label", label);
+    }
+    document.dispatchEvent(new Event("rex-theme-change"));
   };
   apply();
   system.addEventListener("change", apply);
   document.addEventListener("DOMContentLoaded", () => {
-    const select = document.querySelector("#theme");
-    select.value = preference;
-    select.addEventListener("change", () => {
-      preference = select.value;
+    const set = value => {
+      preference = value;
       apply();
       try { localStorage.setItem("rex-theme", preference); } catch {}
-    });
+    };
+    apply();
+    document.querySelector("#theme").addEventListener("click", () =>
+      set(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+    document.querySelector("#system-theme").addEventListener("click", () => set("system"));
   });
 })();

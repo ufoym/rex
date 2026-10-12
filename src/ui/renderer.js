@@ -20,6 +20,8 @@ export class Renderer {
     this.assets = new Map();
     this.images = new Map();
     this.assetEpoch = 0;
+    this.resizeObserver = new ResizeObserver(() => this.fitPages());
+    this.resizeObserver.observe(container);
     container.addEventListener("dblclick", event => {
       const host = event.target.closest(".page");
       if (!host || !this.capture) return;
@@ -156,8 +158,15 @@ export class Renderer {
       this.views.set(n, { host, canvas, ready: false });
       this.observer.observe(host);
     }
+    this.fitPages();
     await this.renderPage(1);
     return this.pdf.numPages;
+  }
+  fitPages() {
+    const style = getComputedStyle(this.container);
+    const width = this.container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    if (width <= 0) return;
+    for (const {host} of this.views.values()) host.style.zoom = Math.min(1, width / parseFloat(host.style.width));
   }
   async renderPage(n) {
     const v = this.views.get(n);

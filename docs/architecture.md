@@ -1,6 +1,6 @@
 # Project structure
 
-Rex serves native ES modules without a bundler. Directory names describe responsibilities; the build preserves the same layout under `dist/assets/`.
+Rex serves application code as native ES modules. The CodeMirror dependency is bundled locally with esbuild; setup, build and the development server generate `vendor/codemirror.mjs` and its component licences. Directory names describe responsibilities; the build preserves the same layout under `dist/assets/`.
 
 ```text
 src/
@@ -28,6 +28,7 @@ docs/          Guides, comparisons, methodology and recorded benchmark evidence
 | Responsibility | Entry / owner |
 | --- | --- |
 | Editor actions, import / export buttons and source navigation | [ui/app.js](../src/ui/app.js) |
+| Source editor configuration and shortcuts | [ui/editor.js](../src/ui/editor.js) |
 | PDF pages, font outlines and paragraph patches | [ui/renderer.js](../src/ui/renderer.js) |
 | Project paths, portable archives and browser storage | [core/project.js](../src/core/project.js) |
 | Preamble, paragraph spans and live-edit safety | [core/document.js](../src/core/document.js) |
