@@ -24,7 +24,7 @@ Open [localhost:8080](http://127.0.0.1:8080). Edit the built-in document or impo
 
 To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
 
-For GitHub Pages, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions** in the `ufoym/rex` repository. The [Pages workflow](.github/workflows/pages.yml) builds and verifies the site, then publishes `dist/` on every push to `main`. Once deployment succeeds, open [ufoym.github.io/rex/](https://ufoym.github.io/rex/). You can also run **Deploy GitHub Pages** manually from the Actions tab on `main`.
+For GitHub Pages, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions** in your repository. The [Pages workflow](.github/workflows/pages.yml) builds and verifies the site, then publishes `dist/` on every push to `main`. Once deployment succeeds, open the site URL shown in **Settings → Pages**. You can also run **Deploy GitHub Pages** manually from the Actions tab on `main`.
 
 ## Development
 
