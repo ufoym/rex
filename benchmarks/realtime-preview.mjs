@@ -11,6 +11,8 @@ import { execFileSync } from "node:child_process";
 const plugin = path.resolve(process.argv[2] || "../realtime-tex-vsc-plugin");
 const engine = path.resolve(process.argv[3] || "../realtime-tex");
 const quick = process.argv.includes("--quick");
+const matched = process.argv.includes("--matched");
+const selectedRound = process.argv.find(x => x.startsWith("--round="))?.slice(8);
 const output = path.resolve(process.argv.find(x => x.startsWith("--output="))?.slice(9) || "artifacts/benchmarks/realtime-preview.json");
 const requirePlugin = createRequire(path.join(plugin, "package.json"));
 const { build } = requirePlugin("esbuild");
@@ -37,10 +39,16 @@ const instrumentation = `
     (vscode as any).postMessage({type: 'rexBenchmarkDrawn', id: pending.id,
       revision: pending.revision, hash, width: w, height: h, reason: reason ?? null,
       usedPdf: usePdf, userAgent: navigator.userAgent, dpr, canvasSubmittedAt,
+      viewportWidth: viewport.clientWidth, viewportHeight: viewport.clientHeight,
+      zoom: zoomPercent() / 100,
+      innerWidth, innerHeight,
       previewReceiveToReadbackMs: performance.now() - pending.received});
   }
 `;
-const instrumented = source.replace(marker, instrumentation + marker).replace(
+const matchedInstrumentation=instrumentation.replace(
+  "    const pixels = ctx.getImageData(0, 0, w, h).data;\n    let hash = 2166136261;\n    for (const byte of pixels) hash = Math.imul(hash ^ byte, 16777619) >>> 0;\n", "    const hash = null;\n").replace("previewReceiveToReadbackMs:","previewReceiveToDrawMs:");
+const observation=matched?matchedInstrumentation:instrumentation;
+let instrumented = source.replace(marker, observation + marker).replace(
   "    case 'paragraph':\n",
   "    case 'paragraph':\n      if ((m as any).rexBenchmark) (window as any).__rexBenchmark = { ...(m as any).rexBenchmark, revision: m.revision, received: performance.now() };\n",
 ).replace("  const m = ev.data;\n", `  const m = ev.data;
@@ -59,6 +67,7 @@ const instrumented = source.replace(marker, instrumentation + marker).replace(
   }
 `);
 assert.notEqual(instrumented, source);
+if (matched) instrumented += `\nObject.assign(viewport.style, {width:'640px',height:'600px',right:'auto',bottom:'auto'});\n`;
 await build({ stdin: { contents: instrumented, resolveDir: path.join(plugin, "webview"), sourcefile: "main.ts", loader: "ts" }, bundle: true, outfile: path.join(plugin, "dist/webview.js"), platform: "browser", format: "esm", target: "chrome114" });
 
 const scratch = await fs.mkdtemp(path.join(os.tmpdir(), "rex-preview-"));
@@ -90,18 +99,18 @@ await runTests({
   version: "1.141.0",
   extensionDevelopmentPath: plugin,
   extensionTestsPath: suiteFile,
-  launchArgs: [project, "--user-data-dir", userData, "--extensions-dir", path.join(scratch, "extensions"), "--disable-extensions", "--disable-extension=github.copilot-chat", "--skip-welcome", "--skip-release-notes"],
-  extensionTestsEnv: { REX_PREVIEW_OUT: runFile, REX_PREVIEW_QUICK: quick ? "1" : "" },
+  launchArgs: [project, "--user-data-dir", userData, "--extensions-dir", path.join(scratch, "extensions"), "--disable-extensions", "--disable-extension=github.copilot-chat", "--skip-welcome", "--skip-release-notes", "--force-device-scale-factor=1"],
+  extensionTestsEnv: { REX_PREVIEW_OUT: runFile, REX_PREVIEW_QUICK: quick ? "1" : "", REX_PREVIEW_MATCHED: matched ? "1" : "", REX_PREVIEW_ROUND: selectedRound ?? "", REX_PREVIEW_EQUIVALENT: new URL("../src/protocol/display-list.js",import.meta.url).href },
 });
 const report = JSON.parse(await fs.readFile(runFile, "utf8"));
 report.date = new Date().toISOString();
 report.environment = { platform: process.platform, arch: process.arch, os: os.release(), cpu: os.cpus()[0].model,
   node: process.version, tex: execFileSync("lualatex", ["--version"], { encoding: "utf8" }).split("\n")[0] };
 report.upstream = { plugin: git(plugin, "rev-parse", "HEAD"), engine: git(engine, "rev-parse", "HEAD") };
-report.instrumentation = { rendererSourceSha256: createHash("sha256").update(source).digest("hex"), insertion: instrumentation,
+report.instrumentation = { rendererSourceSha256: createHash("sha256").update(source).digest("hex"), insertion: observation,
   driver: await fs.readFile(new URL(import.meta.url), "utf8") };
 await fs.mkdir(path.dirname(output), { recursive: true });
-await fs.writeFile(output, JSON.stringify(report, null, 2) + "\n");
+await fs.writeFile(output, JSON.stringify(report) + "\n");
 console.log(JSON.stringify({ output, summary: report.summary }, null, 2));
 await fs.rm(scratch, { recursive: true, force: true });
 await fs.rm(userData, { recursive: true, force: true });
@@ -114,6 +123,9 @@ async function suite() {
   const { performance } = require("node:perf_hooks");
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const quick = Boolean(process.env.REX_PREVIEW_QUICK);
+  const matched = Boolean(process.env.REX_PREVIEW_MATCHED);
+  const equivalent = matched ? (await import(process.env.REX_PREVIEW_EQUIVALENT)).equivalent : null;
+  const selectedRound = process.env.REX_PREVIEW_ROUND === "" ? null : Number(process.env.REX_PREVIEW_ROUND);
   const warmups = quick ? 2 : 20, samples = quick ? 5 : 300, rounds = quick ? 1 : 3;
   const wait = async (label, predicate) => {
     const start = performance.now();
@@ -126,10 +138,14 @@ async function suite() {
   const folder = vscode.workspace.workspaceFolders[0].uri.fsPath;
   const file = path.join(folder, "main.tex");
   const results = [];
-  for (let round = 0; round < rounds; round++) {
+  if (matched) {
+    for (const command of ["workbench.action.closeSidebar", "workbench.action.closeAuxiliaryBar", "workbench.action.closePanel"]) await vscode.commands.executeCommand(command);
+    await vscode.commands.executeCommand("vscode.setEditorLayout", {orientation:0,groups:[{size:0.2},{size:0.8}]});
+  }
+  for (const round of selectedRound === null ? Array.from({length:rounds},(_,i)=>i) : [selectedRound]) {
     for (const pages of [10, 100, 300]) {
       const paragraph = "The quick brown fox jumps over the lazy dog. Each edit re-typesets only this paragraph, preserving precise glyph positions and line breaking. ".repeat(3);
-      const pre = "\\documentclass{article}\n\\usepackage{amsmath}\n";
+      const pre = matched ? "\\documentclass[a4paper]{article}\n\\usepackage{amsmath}\n" : "\\documentclass{article}\n\\usepackage{amsmath}\n";
       const source = pre + "\\begin{document}\n" + Array.from({length: pages}, (_, i) => paragraph + "\n\n" + (i + 1 < pages ? "\\newpage\n\n" : "")).join("") + "\\end{document}\n";
       await vscode.commands.executeCommand("workbench.action.closeAllEditors");
       await vscode.commands.executeCommand("realtimeTex.stop");
@@ -137,7 +153,10 @@ async function suite() {
       fs.writeFileSync(file, source);
       const doc = await vscode.workspace.openTextDocument(file);
       const editor = await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+      if (doc.getText() !== source) assert.ok(await editor.edit(edit=>edit.replace(new vscode.Range(doc.positionAt(0),doc.positionAt(doc.getText().length)),source)));
+      assert.equal(doc.getText(),source,"Editor did not load the current corpus");
       await vscode.commands.executeCommand("realtimeTex.openPreview");
+      if (matched) await vscode.commands.executeCommand("vscode.setEditorLayout", {orientation:0,groups:[{size:0.2},{size:0.8}]});
       await wait("session", () => api.session()?.running);
       const s = api.session();
       await wait("layout", () => s.model.pagesTotal === pages && s.status.convergence?.state === "Converged" && !s.status.pending);
@@ -149,7 +168,7 @@ async function suite() {
       let snapshotResolve;
       let clockResolve;
       s.onDidChangeDocument = event => {
-        if (pending && event.contentChanges.length) {
+        if (pending && event.document===doc && event.contentChanges.length) {
           pending.eventAt = performance.now();
           pending.eventEpoch = performance.timeOrigin + pending.eventAt;
         }
@@ -189,13 +208,18 @@ async function suite() {
       };
       const values = [];
       const hashes = {};
+      const liveLists = {};
+      const fingerprints = {};
       let lastRevision = -1;
       let clock;
       const at = source.indexOf("brown fox") + "brown ".length;
+      let schedule = performance.now() + 50;
       try {
         for (let i = 0; i < warmups + samples; i++) {
           if (i % 20 === 0) clock = await calibrate();
+          if (matched) await delay(Math.max(0, schedule - performance.now()));
           const word = i % 2 ? "cat" : "dog";
+          assert.notEqual(doc.getText().slice(at,at+3),word,"Scheduled edit would be a no-op");
           let finish;
           const done = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(Error(`No drawn paragraph: ${pages} pages, edit ${i}, status ${JSON.stringify(s.status)}`)), 30000);
@@ -210,19 +234,44 @@ async function suite() {
           lastRevision = result.revision;
           assert.equal(result.usedPdf, false, "Expected exact Canvas rendering");
           assert.equal(result.reason, null, "Missing resources or approximate output");
-          if (hashes[word] !== undefined) assert.equal(result.hash, hashes[word], "Pixels changed for an identical edit");
-          hashes[word] = result.hash;
-          assert.notEqual(hashes.cat, hashes.dog, "Preview did not change");
+          if (matched) {
+            assert.equal(result.viewportWidth,640); assert.equal(result.viewportHeight,600);
+            assert.ok(result.innerWidth>=640 && result.innerHeight>=636,"Preview viewport is clipped by the host window");
+            assert.equal(result.dpr,1); assert.equal(result.width,794); assert.equal(result.height,1123);
+            assert.equal(result.zoom,1,"Preview is not at 100% zoom");
+          }
+          if (matched) {
+            liveLists[word] = [...s.model.overlays.values()].find(x=>x.revision===result.revision).dl;
+            const fingerprint=JSON.stringify(liveLists[word]);
+            if(fingerprints[word]!==undefined) assert.equal(fingerprint,fingerprints[word],"Unstable compiled output");
+            fingerprints[word]=fingerprint;
+          } else {
+            if (hashes[word] !== undefined) assert.equal(result.hash, hashes[word], "Pixels changed for an identical edit");
+            hashes[word] = result.hash;
+            assert.notEqual(hashes.cat, hashes.dog, "Preview did not change");
+          }
           result.engineMs = s.status.lastFastMs;
+          result.scheduledAt = schedule;
+          result.scheduleLateMs = matched ? Math.max(0, pending.triggerAt - schedule) : null;
           if (i >= warmups) values.push(result);
           pending = undefined;
-          await delay(2);
+          if (matched) schedule += 60 + ((Math.imul(i + 1, 1103515245) >>> 0) % 41);
+          else await delay(2);
         }
         // Independent full-document layout and drawing, outside the measured loop.
         const referenceHashes = {};
+        const referenceValidation = {};
         for (const word of ["cat", "dog"]) {
           if (doc.getText().slice(at, at + 3) !== word) {
+            let drawn;
+            if(matched) drawn=new Promise((yes,no)=>{const timer=setTimeout(()=>no(Error("No post-run draw")),30000);pending={id:-1,resolve:r=>{clearTimeout(timer);yes(r);},triggerAt:performance.now(),clock};});
             assert.ok(await editor.edit(edit => edit.replace(new vscode.Range(doc.positionAt(at), doc.positionAt(at + 3)), word)));
+            if(matched){await drawn;pending=undefined;}
+          }
+          if(matched) {
+            const snapshot=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error("No post-run snapshot")),30000);snapshotResolve=r=>{clearTimeout(timer);resolve(r);};});
+            await send({type:"rexBenchmarkSnapshot"});
+            hashes[word]=(await snapshot).hash;
           }
           s.recompile();
           await wait("full reference", () => !s.status.pending && s.status.convergence?.state === "Converged" && s.model.overlays.size === 0);
@@ -234,10 +283,18 @@ async function suite() {
           await send({type: "rexBenchmarkSnapshot"});
           const reference = await snapshot;
           assert.equal(reference.overlays, 0, "Full reference still contains live overlays");
-          assert.equal(reference.hash, hashes[word], "Live pixels differ from independently compiled full-page reference");
+          if (matched) {
+            const page=s.model.pages.get(1).dl;
+            const uid=page.lines[0].unit;
+            const lines=page.lines.filter(l=>l.unit===uid);
+            const unit={uid,placements:lines.map(l=>({page:1,row:l.row}))};
+            assert.ok(equivalent(liveLists[word],unit,[...s.model.pages.values()].sort((a,b)=>a.page-b.page).map(p=>p.dl)),"Live glyphs/positions differ from full compilation");
+            referenceValidation[word]={equivalent:true,pixelEqual:reference.hash===hashes[word],unit,fullPage:page};
+          } else assert.equal(reference.hash, hashes[word], "Live pixels differ from independently compiled full-page reference");
           referenceHashes[word] = reference.hash;
         }
-        results.push({round, pages, warmups, samples, pixelHashes: hashes, referenceHashes, values});
+        if(matched) assert.notEqual(hashes.cat,hashes.dog,"Post-run preview pixels did not change");
+        results.push({round, pages, warmups, samples, pixelHashes: hashes, referenceHashes, referenceValidation, compiledLists:matched?liveLists:undefined, values});
         fs.writeFileSync(process.env.REX_PREVIEW_OUT, JSON.stringify({quick, rounds: results}));
         console.log(`[preview] round ${round + 1}, ${pages} pages: ${values.length} verified draws`);
       } finally {
@@ -256,9 +313,10 @@ async function suite() {
     const runs = results.filter(x => x.pages === pages);
     const stats = field => ({medianMs: percentile(runs.map(r => percentile(r.values.map(v => v[field]), .5)), .5),
       p95Ms: percentile(runs.map(r => percentile(r.values.map(v => v[field]), .95)), .5)});
-    return {pages, ...stats("editToCanvasMs"), acknowledgedReadback: stats("editToAckMs")};
+    return {pages, ...stats("editToCanvasMs"), [matched?"acknowledgedUpdate":"acknowledgedReadback"]: stats("editToAckMs")};
   });
   fs.writeFileSync(process.env.REX_PREVIEW_OUT, JSON.stringify({quick, warmups, samples, roundCount: rounds,
-    boundary: "VS Code document-change callback through native rtex and upstream webview animation-frame drawing to Canvas replacement; excludes editor applyEdit trigger, cold setup, pixel verification and screen compositing. Secondary timer includes pixel readback/hash and acknowledgement.",
+    boundary: matched ? "Editor document-change callback -> first-page Canvas replacement; no pixel readback in warmups or timed samples; secondary timer includes message acknowledgement only" : "VS Code document-change callback through native rtex and upstream webview animation-frame drawing to Canvas replacement; excludes editor applyEdit trigger, cold setup, pixel verification and screen compositing. Secondary timer includes pixel readback/hash and acknowledgement.",
+    matched, selectedRound, cadence: matched ? "Absolute scheduled starts, deterministic 60–100 ms intervals" : "2 ms after verified acknowledgement",
     rounds: results, summary, vscodeVersion: vscode.version}, null, 2));
 }

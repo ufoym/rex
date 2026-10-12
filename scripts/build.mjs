@@ -4,7 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundles } from "../src/compiler/assets.js";
 import { buildEditor } from "./editor-vendor.mjs";
-import { buildStandalone } from "./standalone.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 await buildEditor();
@@ -28,7 +27,8 @@ try {
   for (const name of [...vendors, ...engineFiles.map(name => "engine/" + name)])
     await copy("vendor/" + name, "vendor/" + name);
   for (const name of ["LICENSE", "THIRD_PARTY.md"]) await copy(name, name);
-  const generatedInputs = await buildStandalone(stage);
+  const generatedInputs = process.argv.includes("--hosted") ? {}
+    : await import("./standalone.mjs").then(({buildStandalone}) => buildStandalone(stage));
   const files = {};
   async function inventory(dir, prefix = "") {
     const entries = (await readdir(dir, { withFileTypes: true })).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);

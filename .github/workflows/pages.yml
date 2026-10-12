@@ -35,7 +35,7 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Build and verify static site
         run: |
-          npm run build
+          npm run build:hosted
           npm run check
           npm run test:static
           npm run test:webkit

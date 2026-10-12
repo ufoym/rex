@@ -24,7 +24,7 @@ benchmarks/    Browser, native compiler and public-workload performance drivers
 scripts/       Setup, build, checks, local server and font conversion
 public/        HTML, CSS, service worker and static hosting headers
 examples/      Importable LaTeX projects
-docs/          Guides, comparisons, methodology and recorded benchmark evidence
+docs/          Guides, comparisons, methodology and benchmark result summaries
 ```
 
 ## Where to make a change
@@ -61,17 +61,18 @@ WASM compilation overlaps resource downloads. Full, standby and live engines sha
 | `vendor/` | `npm run setup`: pinned engines, tools, fonts and libraries | No |
 | `dist/` | `npm run build`: complete static site with asset hashes and licences | No |
 | `artifacts/tests/` | Regression reports and screenshots | No |
-| `artifacts/benchmarks/` | New benchmark reports and mismatch details | No |
+| `artifacts/benchmarks/` | Generated benchmark reports, local historical evidence and mismatch details | No |
 | `artifacts/archive/` | Historical experiment scripts, snapshots and logs, grouped by archive date | No |
 | `artifacts/build-*` | Temporary build staging, removed by the build | No |
-| `docs/*.json` | Reviewed, published measurement evidence | Yes |
 
 The development server maps `/assets/` to `src/` and `/vendor/` to `vendor/`. Production publishes `public/`, `src/` and selected vendor files as one static site. Relative URLs must work in both layouts and under a site prefix such as `/rex/`.
 
 Archived experiment scripts are retained as records; their original relative paths may refer to an earlier source layout. Use the maintained drivers in `benchmarks/` for new measurements.
 
+Historical experiments may be stored as gzip-compressed tar archives under `artifacts/archive/`. Each archive preserves repository-relative paths; inspect it with `tar -tzf <archive>` or restore it from the repository root with `tar -xzf <archive>`. Current startup font and Asyncify build caches stay outside these archives so repeated builds can reuse them directly.
+
 ## Validation and documentation
 
 After moving a module, update its imports, worker URLs, page-relative URLs inside browser tests, package commands and documentation links. `npm run check` recursively checks source, tooling, tests and benchmarks, then verifies the distribution inventory against source. Run `npm run build` followed by `npm run test:all` to exercise the complete published layout.
 
-Keep the [README](../README.md) focused on setup and project navigation. Put editing and deployment instructions in the [guide](guide.md), comparison tables in [comparison.md](comparison.md), and measurement details in [performance.md](performance.md). Existing JSON reports and frozen fixtures retain their original hashes, paths and results as historical evidence.
+Keep the [README](../README.md) focused on setup and project navigation. Put editing and deployment instructions in the [guide](guide.md), comparison tables in [comparison.md](comparison.md), and measurement details in [performance.md](performance.md). Keep raw JSON reports under ignored `artifacts/benchmarks/`; summarize reviewed results and reproduction steps in the Markdown documents. Frozen fixtures under `tests/fixtures/` remain versioned regression evidence.

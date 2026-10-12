@@ -2,15 +2,19 @@
 
 The [comparison document](comparison.md) contains the [feature matrix](comparison.md#feature-comparison) and [performance summary](comparison.md#performance-comparison). This document retains the detailed results, measurement scope, reproduction and evidence. Features were checked against primary documentation and source on 2026-10-11; documented support is distinguished from locally tested behavior.
 
+Raw JSON reports are generated under ignored `artifacts/benchmarks/` and are not versioned. The historical files named below are retained locally under `artifacts/benchmarks/reports/`; a fresh checkout contains the result tables and reproduction drivers, but not those original samples. Rerunning a driver produces a new report for the current machine.
+
 ## Reading the percentages
 
-Results use **% faster / % slower**, calculated from unrounded summary values in the [raw report](performance.json) and rounded to one decimal. Faster percentages use `(baseline / Rex − 1) * 100`; slower percentages use `(Rex / baseline − 1) * 100`. **25% faster** means 20% less elapsed time; **25% slower** means 25% more elapsed time. Differences that round to zero are shown as less than 0.1%. Median and P95 changes are calculated separately from their respective three-run summaries; they are not percentiles of per-edit changes.
+The opening percentage summary uses historical `performance.json` measurements. Current matched preview results are in the [Rex / realtime-tex](#matched-rex--realtime-tex-preview-measurements) and [TeXpresso](#matched-texpresso-preview-measurements) sections.
 
-Rex versus realtime-tex at the shared native compiler boundary and Rex versus its preceding browser build have matching timers. TeXpresso preview and native LuaLaTeX full-pass timers include different work from Rex; their faster / slower percentages describe recorded timings rather than directly comparable product speeds. Measurements cover these configurations only. Texifier, TeXlyre, Overleaf, Typst and pdfLaTeX have no same-machine timing here, so no percentage comparison is assigned to them.
+Results use **% faster / % slower**, calculated from unrounded summary values in the local `performance.json` report and rounded to one decimal. Faster percentages use `(baseline / Rex − 1) * 100`; slower percentages use `(Rex / baseline − 1) * 100`. **25% faster** means 20% less elapsed time; **25% slower** means 25% more elapsed time. Differences that round to zero are shown as less than 0.1%. Median and P95 changes are calculated separately from their respective three-run summaries; they are not percentiles of per-edit changes.
 
-## Overall speed summary
+Rex versus realtime-tex at the shared native compiler boundary and Rex versus its preceding browser build have matching timers. The historical TeXpresso preview and native LuaLaTeX full-pass timers include different work from Rex; their faster / slower percentages describe recorded timings rather than directly comparable product speeds. Measurements cover these configurations only. Texifier, TeXlyre, Overleaf, Typst and pdfLaTeX have no same-machine timing here, so no percentage comparison is assigned to them.
 
-Recorded median timings are aggregated using an equally weighted geometric mean: `ratio = exp(mean(log(baseline median / Rex median)))`, then `% faster = (ratio − 1) * 100`. Each case uses the median of its three run-level medians from the [raw report](performance.json). Ratios are computed before rounding; this is a workload summary, not a pooled edit percentile or a statistical significance estimate. The separate VS Code preview measurements below do not enter the native realtime-tex aggregate.
+## Historical speed summary
+
+Recorded median timings are aggregated using an equally weighted geometric mean: `ratio = exp(mean(log(baseline median / Rex median)))`, then `% faster = (ratio − 1) * 100`. Each case uses the median of its three run-level medians from the local `performance.json` report. Ratios are computed before rounding; this is a workload summary, not a pooled edit percentile or a statistical significance estimate. The separate VS Code preview measurements below do not enter the native realtime-tex aggregate.
 
 | Competitor | Included cases | Geometric mean ratio | Overall recorded timing |
 | --- | --- | ---: | --- |
@@ -21,7 +25,7 @@ TeXpresso uses `comparison.texpresso.summary[].medianMs / final.summary[].median
 
 ## Auditing the comparison summary
 
-The comparison summary displays Rex median, baseline median, Rex P95, baseline P95 and the median percentage in separate columns, with one row per baseline and document size. The summary uses the first text paragraph consistently; the full native table below also retains middle / last edits, math and styles. Its data come from these paths in the [raw report](performance.json):
+The comparison summary displays Rex median, baseline median, Rex P95, baseline P95 and the median percentage in separate columns, with one row per baseline and document size. The summary uses the first text paragraph consistently; the full native table below also retains middle / last edits, math and styles. Its data come from these paths in the local `performance.json` report:
 
 - Browser Rex: `final.summary`; individual samples and the three runs are in `final.rounds[].results[]`.
 - TeXpresso: `comparison.texpresso.summary` and `comparison.texpresso.rounds[]`, including pixel verification and source hashes.
@@ -45,6 +49,8 @@ Each case has three sequential rounds, each with a new resident engine, all para
 Timing starts before request encoding / writing and stops after the complete framed response and display list are decoded. Reference compilation, context registration, the pause and output validation are excluded. Every warmup and measured result must match a fresh full native LuaLaTeX capture of the edited document: font identity, glyph identity, relative glyph coordinates, advances, line boxes, colours and rules. Only translation to the page is removed. The common capture adapter is Rex's journal; this verifies live paragraph output against full typesetting, but does not independently validate the capture adapter, complete PDFs, pagination or arbitrary packages. Existing frozen and native / WASM regression tests cover the adapter separately.
 
 Median and P95 use the nearest-rank percentile within each run. Each displayed value is the median of its three run-level values, not a pooled percentile. Raw timings and run medians are preserved; no outliers are removed. A correctness failure withholds that compiler's latency for the case and retains the mismatch instead of treating an invalid update as a fast result. Three runs do not establish statistical significance or a universal ranking. Main-thread scheduling, operating-system wakeups, garbage collection and other machine activity can affect small differences.
+
+The README's native latency row selects only the **first text paragraph at 10 / 100 / 300 pages**, reporting **0.59–1.57 ms for Rex / 0.60–1.61 ms for realtime-tex** from these existing measurements. The 10-case relative-speed aggregate above has broader coverage and is kept separately. TeXpresso's document byte-patch / checkpoint / page-output path has no corresponding resident paragraph request in this benchmark; its editor-to-SDL preview timings are not compiler-only timings. A future native page-update measurement would need its own stated endpoint and validation.
 
 ### Detailed native results
 
@@ -95,7 +101,7 @@ npm run bench:compare -- ../realtime-tex-comparison --pause=0 --output=artifacts
 # Optional smoke run: append --quick (not comparable with the published results).
 ```
 
-The checkout must be clean. No Rust build is required because the common host drives each native Lua / TeX server directly. Default output goes to ignored `artifacts/benchmarks/comparison.json`; temporary compilation directories and owned child processes are cleaned up. The external checkout remains outside Rex and is not a runtime or distribution dependency. Default-policy results live at `comparison.realtimeTex`; burst results live at `comparison.realtimeTexBurst` in the [raw report](performance.json). The prior utility-QoS experiment and its original source hashes remain under `responsiveness.before.utility`; it is historical evidence, not a measurement of the current source.
+The checkout must be clean. No Rust build is required because the common host drives each native Lua / TeX server directly. Default output goes to ignored `artifacts/benchmarks/comparison.json`; temporary compilation directories and owned child processes are cleaned up. The external checkout remains outside Rex and is not a runtime or distribution dependency. Default-policy results live at `comparison.realtimeTex`; burst results live at `comparison.realtimeTexBurst` in the local `performance.json` report. The prior utility-QoS experiment and its original source hashes remain under `responsiveness.before.utility`; it is historical evidence, not a measurement of the current source.
 
 realtime-tex's [published benchmarks](https://github.com/HenryXiaoYang/realtime-tex/blob/210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1/docs/benchmarks.md) use a different machine, fonts and Rust session boundary. They are useful context, but are not inserted into the same-hardware table. Its [live-editing documentation](https://github.com/HenryXiaoYang/realtime-tex/blob/210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1/docs/live-editing.md) distinguishes exact paragraph output from later global layout.
 
@@ -147,7 +153,7 @@ Every ratio is **author-reported elapsed time ÷ Rex measured median**, calculat
 
 **Validation:** All **52,500 responses** (including warmups) match full native LuaLaTeX capture references for font identity, glyphs, relative coordinates, advances, line boxes and rules. Only page translation is removed. This verifies the paragraph display list against full typesetting; it does not independently validate the shared capture adapter, rendered browser pixels or complete editor behavior. The tests operate on one paragraph, not 10 / 100 / 300-page documents, and establish no document-size scaling result. Three runs provide observed variability, not statistical significance.
 
-The [raw report](texlode-workloads.json) records the exact sample text, context, upstream / Rex source hashes, reference hashes, environment, author baselines, individual timings and batch statistics. Reproduction requires native LuaLaTeX with microtype and amsmath, plus the clean pinned public checkout:
+The local `texlode-workloads.json` report records the exact sample text, context, upstream / Rex source hashes, reference hashes, environment, author baselines, individual timings and batch statistics. Reproduction requires native LuaLaTeX with microtype and amsmath, plus the clean pinned public checkout:
 
 ```sh
 git clone https://github.com/texlode/luatex-benchmark ../texlode-benchmark
@@ -156,11 +162,81 @@ npm run bench:texlode -- ../texlode-benchmark
 # Optional smoke run: append --quick; never use smoke results for the table.
 ```
 
-Default output is ignored `artifacts/benchmarks/texlode-workloads.json`. To replace the published raw report, append `--output=docs/texlode-workloads.json` and regenerate the displayed timings / ratios from it. Temporary compilation directories and owned processes are cleaned up; the public checkout is external and is not a runtime dependency.
+Default output is ignored `artifacts/benchmarks/texlode-workloads.json`. Use the generated report to update the displayed timings / ratios; keep raw output under `artifacts/benchmarks/`. Temporary compilation directories and owned processes are cleaned up; the public checkout is external and is not a runtime dependency.
+
+## Matched Rex / realtime-tex preview measurements
+
+The [matched preview driver](../benchmarks/preview-comparison.mjs) runs both real editor pipelines with one timing contract: **the application's document-change listener starts → the first page's Canvas drawing submission completes**. Rex starts at CodeMirror's document-change listener, before source-string conversion, and ends after `Renderer.repaint()` returns. realtime-tex starts at the VS Code plugin's document-change listener and ends after the renderer replaces its page Canvas. Both include their normal compiler, communication and drawing paths; realtime-tex retains its normal animation-frame scheduling. Neither includes the synthetic edit command before the change callback, pixel verification, acknowledgement, GPU completion or physical screen presentation.
+
+The test fixes **Apple M4**, **Electron 43.7.7 / Chromium 150.0.7871.250**, visible application windows, **A4**, **100% preview zoom**, **device pixel ratio 1**, a **640 × 600 CSS-pixel preview area**, and a **794 × 1123 pixel first-page Canvas**. Every sampled update checks the zoom, viewport and backing-store dimensions. Rex runs its publishable build in a stock Electron browser window; realtime-tex runs its real VS Code extension host / native Rust / webview pipeline. Each app retains its own compiler and font pipeline. The browser version and measurement boundary match; this is an application-pipeline comparison, not a shared-engine compiler benchmark.
+
+The corpus uses `article` with explicit `a4paper`, `amsmath`, one repeated text paragraph per page and explicit page breaks at **10 / 100 / 300 pages**. Edits alternate the first `brown fox` occurrence between `brown dog` and `brown cat`. Both tools use the same deterministic **60–100 ms varying interval sequence**, scheduled from absolute target start times rather than from the previous acknowledgement. Actual scheduling lateness is retained. Three rounds alternate application order: **Rex → realtime-tex**, **realtime-tex → Rex**, **Rex → realtime-tex**. Each application / size / round has 20 warmups and 300 measured updates, giving **900 measured updates per application and size**.
+
+Measured on **2026-10-12**. Each cell shows **median / P95 in ms**:
+
+| Application | 10 pages | 100 pages | 300 pages |
+| --- | ---: | ---: | ---: |
+| Rex | 4.660 / 5.205 | 4.175 / 5.195 | 4.270 / 5.500 |
+| realtime-tex | 9.369 / 16.720 | 8.006 / 16.555 | 8.951 / 16.643 |
+
+The equally weighted geometric mean of realtime-tex / Rex per-size median ratios is **2.006716×**, reported as **2.01× / 100.7% faster** in this edit-to-Canvas metric. This is not an aggregation of individual-edit percentiles. Three rounds provide observed variability rather than statistical significance or a universal performance claim. Maximum recorded scheduling lateness is **3.285 / 6.418 ms** for Rex / realtime-tex; realtime-tex's maximum calibration half-round-trip is **0.331 ms**. All samples remain in the report.
+
+**Observation and validation:** warmups and timed samples perform no Canvas pixel readback. Observation hooks record the completed drawing submission, while every compiler response is checked for a stable display list for the same edited text. After each measured sequence, pixel snapshots must change between dog and cat. The saved live display lists are checked against independent full compilations for font identity, relative glyph positions, line widths and line boxes, removing only page translation. Complete reference data are retained. Exact full-page raster equality is diagnostic rather than a pass criterion: an incremental preview can retain the preceding global placement until a full pass settles it. This does not independently certify the renderer or physical screen pixels.
+
+Rex's start / end timestamps are in one renderer clock. realtime-tex's extension-host / renderer clocks are calibrated every 20 edits using the shortest of five round-trip exchanges; calibration samples and uncertainty are retained. Per-run median / P95 use nearest-rank statistics; the reported per-size values are the medians of the three run-level values. No measured updates are discarded. The local `preview-comparison.json` report retains both applications' per-edit samples, full-compile references, post-run pixel hashes, versions, source / build fingerprints and instrumentation. The driver checks that Rex's source and build fingerprints did not change during the experiment. Previous API-only and fixed-after-readback measurements below remain historical references.
+
+Reproduction uses the clean engine / plugin checkouts and native LuaLaTeX from the preceding benchmark. Install the matching Electron runtime outside Rex's runtime dependencies, then run:
+
+```sh
+npm install --prefix ../rex-preview-runtime --no-audit --no-fund electron@43.7.7
+node ../rex-preview-runtime/node_modules/electron/install.js
+node benchmarks/preview-comparison.mjs ../realtime-tex-vsc-plugin ../realtime-tex --electron=../rex-preview-runtime/node_modules/electron
+# Smoke only: append --quick. Output: artifacts/benchmarks/preview-comparison.json
+```
+
+The default report is ignored `artifacts/benchmarks/preview-comparison.json`. This workflow is verified on macOS and opens isolated test windows. `docs/comparison.md` summarizes the completed matched results; the older timings below are not substituted for this run.
+
+## Matched TeXpresso preview measurements
+
+The [TeXpresso driver](../benchmarks/texpresso-preview.mjs) uses the same logical boundary as the matched Rex / realtime-tex run: **the real editor's document-change callback starts → first-page drawing commands have been submitted**. It starts at the pinned VS Code plugin's `onDidChangeTextDocument` callback and stops immediately after native `txp_renderer_render()` returns, before `SDL_RenderPresent()`. It includes the plugin's byte-patch synchronization, IPC, checkpoint / rollback compilation, MuPDF rasterization, texture updates and SDL drawing. Synthetic edit triggering, validation / readback, acknowledgements, GPU completion and screen presentation are excluded.
+
+This is a subsequent three-round run on the same **Apple M4 / macOS 26.6.2**, using **VS Code 1.141.0**, [TeXpresso at `e8df7709077b2f86f6e16e6c86ceefb86de06f8d`](https://github.com/let-def/texpresso/tree/e8df7709077b2f86f6e16e6c86ceefb86de06f8d), and [the VS Code plugin 1.8.0 at `a8418da8d7f307abed8bb4552ec5278b260f25a9`](https://github.com/DominikPeters/texpresso-vscode/tree/a8418da8d7f307abed8bb4552ec5278b260f25a9). The native viewer uses **SDL 2.32.8 / Metal**, **MuPDF 1.28.5**, and **TeX Live 2025**, built with Apple clang 17.0.0 / `-O2`. The browser editor uses the same Electron version as realtime-tex; the preview is native SDL. The native visible-region rasterizer and the browser full-page Canvas renderers retain their own algorithms, so matching the logical endpoint does not make their rendering workloads or engines identical.
+
+Each round tests **10 / 100 / 300 pages**, with **20 warmups + 300 measured updates per size**. Text, A4 `article` layout, `amsmath`, first-paragraph dog / cat substitutions and the absolute deterministic **60–100 ms** edit schedule match the preceding run. TeXpresso also needs `\AtBeginDvi{\special{pdf:pagesize width 210mm height 297mm}}`: its DVI viewer otherwise defaults to a Letter page box despite `a4paper`. This sets the output page box without changing the test paragraph. The observer patch configures a **640 × 600** visible native viewport, **DPR 1**, uncropped A4 page, and **794 px** full-page width (100% CSS-equivalent). Every measured draw checks the viewport, A4 aspect ratio, page scale and actual Metal backend. It preserves the production vsync setting. These are preview settings, not compiler or render-algorithm changes.
+
+The [native observer patch](../benchmarks/texpresso-observer.patch) records a timestamp and revision after drawing, sends clock probes, and provides post-run snapshots. The plugin adds an observer at its existing change callback and exposes its process handle. Its stdout receiver is changed to Node `readline` framing: the pinned receiver parses each pipe chunk as a complete JSON message, which emits exceptions and can stall a large-document session. This compatibility repair preserves each protocol message and its existing handler; it does not change byte-patch sending, compilation, rendering or scheduling. The exact modified plugin source is retained in the report. Test processes use dedicated process groups for cleanup. No pixel readback or display-list traversal is added to warmups or timed edits. At the end of each sequence, dog / cat snapshots must match independent fresh-process compilations, both for **visible-pixel CRC32** and a **full first-page MuPDF trace CRC32 / byte count**, including glyph identities and positions. Every timed draw is associated with a new byte-patch revision; the two post-run snapshots validate the sequence's final outputs, not every individual frame or screen presentation.
+
+On macOS the native observer uses `mach_absolute_time`; the extension host uses `performance.now`. Clocks are calibrated every 20 edits with the shortest of five round trips, preserving every probe, offset and half-round-trip uncertainty. Statistics use the same nearest-rank median / P95 and median-of-three-run aggregation as Rex / realtime-tex. No measured updates are discarded. The driver monitors protocol exceptions as `protocolErrors` in the raw report. Results describe the pinned VS Code / native-viewer pipeline with the stated receive-framing repair.
+
+Measured on **2026-10-12**. Cells show **median / P95 in ms**, with 900 measured edits per size:
+
+| Application | 10 pages | 100 pages | 300 pages |
+| --- | ---: | ---: | ---: |
+| TeXpresso | 8.338 / 10.271 | 7.895 / 9.950 | 8.108 / 10.531 |
+
+Maximum recorded scheduling lateness is **17.593 ms**; maximum calibration half-round-trip is **0.111 ms**. The receive-framing repair leaves **zero recorded protocol exceptions** in the completed run. Per-size run medians range from **5.758–8.710 / 5.890–8.905 / 6.443–8.489 ms** at 10 / 100 / 300 pages. This variability is retained; the summary uses the middle run statistic, not the fastest run.
+
+The local `texpresso-preview.json` report retains all 2,700 samples, clock calibrations, validation hashes, protocol diagnostics, pinned revisions, build configuration, source / binary fingerprints, observer patch and driver source. It was collected after the paired Rex / realtime-tex run; the three applications were not interleaved. Older dummy-window / readback-inclusive results below do not enter this comparison.
+
+To reproduce, supply SDL2, MuPDF and the engine dependencies from [upstream INSTALL.md](https://github.com/let-def/texpresso/blob/e8df7709077b2f86f6e16e6c86ceefb86de06f8d/INSTALL.md), native TeX Live and the VS Code test runtime used by `benchmarks/realtime-preview.mjs`. Keep the external checkouts and build products outside Rex's shipped dependencies:
+
+```sh
+git -C ../texpresso checkout e8df7709077b2f86f6e16e6c86ceefb86de06f8d
+git -C ../texpresso-vscode checkout a8418da8d7f307abed8bb4552ec5278b260f25a9
+npm ci --prefix ../texpresso-vscode --ignore-scripts
+git -C ../texpresso apply "$PWD/benchmarks/texpresso-observer.patch"
+make -C ../texpresso config
+# Adjust Makefile.config header/library paths for MuPDF if needed; retain -O2.
+make -C ../texpresso -j4 all
+node benchmarks/texpresso-preview.mjs ../texpresso ../texpresso-vscode
+# Smoke only: --quick. Output: artifacts/benchmarks/texpresso-preview/results.json
+```
+
+The driver reuses `esbuild`, `@vscode/test-electron` and the cached VS Code 1.141.0 under `artifacts/benchmarks/realtime-preview/`; those test dependencies must already be prepared. Default output is ignored `artifacts/benchmarks/texpresso-preview/results.json`. This macOS workflow opens isolated native windows and cleans up the test directories and owned process groups.
 
 ## realtime-tex VS Code preview measurements
 
-Measured on **2026-10-12** with [benchmarks/realtime-preview.mjs](../benchmarks/realtime-preview.mjs). This runs the real VS Code extension host, native Rust session and upstream preview renderer. It uses unmodified realtime-tex **0.0.2 at `210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1`**, the [VS Code plugin at `d7a34f18c9210fd22c2e018b868b20a0495dc3c0`](https://github.com/HenryXiaoYang/realtime-tex-vsc-plugin/tree/d7a34f18c9210fd22c2e018b868b20a0495dc3c0), VS Code **1.141.0 / Electron 43.7.7 / Chromium 150.0.7871.250**, and native LuaHBTeX **1.22.0 / TeX Live 2025** on Apple M4 / macOS 26.6.2. The engine uses `cargo build --release --locked`; the plugin uses its existing build dependencies. No compiler, renderer or scheduling algorithm is changed.
+Historical run on **2026-10-12**, before the matched comparison above, with [benchmarks/realtime-preview.mjs](../benchmarks/realtime-preview.mjs). This runs the real VS Code extension host, native Rust session and upstream preview renderer. It uses unmodified realtime-tex **0.0.2 at `210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1`**, the [VS Code plugin at `d7a34f18c9210fd22c2e018b868b20a0495dc3c0`](https://github.com/HenryXiaoYang/realtime-tex-vsc-plugin/tree/d7a34f18c9210fd22c2e018b868b20a0495dc3c0), VS Code **1.141.0 / Electron 43.7.7 / Chromium 150.0.7871.250**, and native LuaHBTeX **1.22.0 / TeX Live 2025** on Apple M4 / macOS 26.6.2. The engine uses `cargo build --release --locked`; the plugin uses its existing build dependencies. No compiler, renderer or scheduling algorithm is changed.
 
 **Primary timer:** starts when the extension receives a VS Code document-change event and stops immediately after the upstream renderer replaces the visible page's Canvas. It includes buffer synchronization, native `rtex serve`, paragraph compilation, resource checks, extension-host → webview messages, the renderer's existing `requestAnimationFrame` wait and page drawing. It excludes the synthetic editor-edit command before the document-change event, cold setup, pixel readback / validation, acknowledgement and screen compositing. Node and Chromium clocks are translated with `performance.timeOrigin` and calibrated every 20 edits using the shortest of five message exchanges. Clock samples and their half-round-trip uncertainty are retained; the largest observed calibration half-round-trip is 0.106 ms. This is calibration evidence, not a confidence interval for the latency.
 
@@ -186,7 +262,7 @@ A comparable user-visible benchmark must start from each editor's applied docume
 
 **Validation:** all **2,880 warmup and measured draws** have strictly advancing source revisions, no PDF fallback and no missing-resource / approximate-rendering reason. Repeated dog / cat edits produce distinct, stable first-page pixel hashes. Outside each timed loop, the plugin requests independent full-document compilation of both edited texts and draws the settled page with no live overlays. Every live hash matches the corresponding full-compile Canvas reference. This checks the edited first page and its positions; it shares the upstream renderer with the reference and does not independently validate that renderer, all document pages, physical screen output or arbitrary packages.
 
-The [raw report](realtime-preview.json) preserves all nine runs, per-edit primary and secondary timings, native timing status, source revisions, pixel / reference hashes, Canvas dimensions, browser version, clock calibration records, upstream revisions, renderer source hash and the complete driver / instrumentation. The browser bundle adds observation messages and readback after drawing; the upstream source checkouts remain clean. Results with `--quick` are smoke checks and are not published.
+The local `realtime-preview.json` report preserves all nine runs, per-edit primary and secondary timings, native timing status, source revisions, pixel / reference hashes, Canvas dimensions, browser version, clock calibration records, upstream revisions, renderer source hash and the complete driver / instrumentation. The browser bundle adds observation messages and readback after drawing; the upstream source checkouts remain clean. Results with `--quick` are smoke checks and are not published.
 
 ```sh
 git clone https://github.com/HenryXiaoYang/realtime-tex ../realtime-tex
@@ -196,7 +272,7 @@ git clone https://github.com/HenryXiaoYang/realtime-tex-vsc-plugin ../realtime-t
 git -C ../realtime-tex-vsc-plugin checkout d7a34f18c9210fd22c2e018b868b20a0495dc3c0
 npm ci --prefix ../realtime-tex-vsc-plugin
 node benchmarks/realtime-preview.mjs ../realtime-tex-vsc-plugin ../realtime-tex
-# Optional smoke check: append --quick. To publish a new report: --output=docs/realtime-preview.json
+# Optional smoke check: append --quick. Output: artifacts/benchmarks/realtime-preview.json
 ```
 
 Native LuaLaTeX is required. The driver uses the plugin's `@vscode/test-electron` to download / reuse its pinned VS Code and launch an actual test window. This measurement was run on macOS; other platforms are not verified by this driver. The default output is ignored `artifacts/benchmarks/realtime-preview.json`. External checkouts and their dependency / VS Code caches are test dependencies, not Rex runtime dependencies.
@@ -211,7 +287,7 @@ TeXpresso uses commit `e8df7709077b2f86f6e16e6c86ceefb86de06f8d`, Apple clang 17
 
 The native LuaLaTeX reference uses LuaHBTeX 1.22.0 from TeX Live 2025, with the same document and capture modules as Rex. Its warm timer starts when stdin releases the preloaded preamble and ends at process completion, including capture output. Different engine versions and measurement boundaries limit interpretation.
 
-The [raw report](performance.json) retains Rex product results under `final`, the shared compiler results under `comparison.realtimeTex`, and TeXpresso samples, source hashes, independent pixel references, the measurement patch and Python driver under `comparison.texpresso`. The pre-addition browser and shared compiler reports remain under `improvements.before`; the preceding build and intermediate measurements for the new live paths remain under `parity`. The previous published product and compiler reports remain under `responsiveness.before`. The driver can be reproduced outside the Rex tree using the pinned checkout and its [build instructions](https://github.com/let-def/texpresso/blob/e8df7709077b2f86f6e16e6c86ceefb86de06f8d/INSTALL.md). Texifier, TeXlyre and Overleaf have no measurements in this report; their design descriptions are not substituted for timings.
+The local `performance.json` report retains Rex product results under `final`, the shared compiler results under `comparison.realtimeTex`, and TeXpresso samples, source hashes, independent pixel references, the measurement patch and Python driver under `comparison.texpresso`. The pre-addition browser and shared compiler reports remain under `improvements.before`; the preceding build and intermediate measurements for the new live paths remain under `parity`. The previous published product and compiler reports remain under `responsiveness.before`. The driver can be reproduced outside the Rex tree using the pinned checkout and its [build instructions](https://github.com/let-def/texpresso/blob/e8df7709077b2f86f6e16e6c86ceefb86de06f8d/INSTALL.md). Texifier, TeXlyre and Overleaf have no measurements in this report; their design descriptions are not substituted for timings.
 
 A broader product benchmark should match the rendering boundary and viewport, pin all versions, separate initial downloads from warm execution, test edits near the beginning and end, and verify complete output. The shared native comparison covers text, math and style; complete editor pipelines, TikZ, tables, bibliographies and cascading pagination still need performance cases. The recorded timing percentages below retain the boundary differences; they do not establish a universal speed ranking.
 
@@ -277,6 +353,6 @@ The prior published rows have three runs; a same-task, single-run starting measu
 
 Frozen layout data covers five cases, seven pages and 1,584 inline glyphs. Tests check coordinates, line geometry, colors, rules, state replay and isolation. All 35 automated tests pass. The final-source editor suite covers editing races, font rendering, aux convergence, preamble invalidation, busy project switches, paragraph growth / splits / merges, overfull line cleanup, table edits, PNG / JPEG replacement, transformed / selected PDF pages, numbered / aligned equations, footnote markers, same-path font replacement / recovery and safe image redraw after a failed project switch. Pixel comparisons additionally cover composed Type1 / OpenType glyph matrices, device scale, slant, expansion, clipping and PDF transforms. Fragmented 100 KiB responses and Unicode changes across 4 KiB source boundaries pass. Static hosting, offline use, bibliography backends and runnable examples also pass. Project regressions verify nested binary / text round trips, local restore including incomplete drafts, child-file live editing and paragraph navigation; index regressions verify named indexes, local styles, reuse, offline generation and removed entries.
 
-The [full compilation report](full-compilation.json) includes picture reuse compared with an uncached PDF, exact TeX box geometry, standby use, BibTeX, BibLaTeX / BibTeX, Biber, offline Biber and MakeIndex. Functional-suite timings are diagnostic records. Before these additions, an independently installed clean checkout passed the full suite with 4,342 distribution entries matching the workspace build byte for byte. The current build has 4,343 entries; checks verify every published byte against its source. The new functionality uses the existing engine / tool resources and adds no runtime dependency.
+The local `full-compilation.json` report includes picture reuse compared with an uncached PDF, exact TeX box geometry, standby use, BibTeX, BibLaTeX / BibTeX, Biber, offline Biber and MakeIndex. Functional-suite timings are diagnostic records. Before these additions, an independently installed clean checkout passed the full suite with 4,342 distribution entries matching the workspace build byte for byte. The current build has 4,343 entries; checks verify every published byte against its source. The new functionality uses the existing engine / tool resources and adds no runtime dependency.
 
 Internal refactoring and directory measurements remain under `refactor` and `organization` in the raw report. Historical results keep their original source hashes and measurement boundaries. Small differences remain subject to system load.

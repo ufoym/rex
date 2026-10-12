@@ -1,0 +1,133 @@
+diff --git a/src/frontend/driver.c b/src/frontend/driver.c
+index 9337b08..29fe4f7 100644
+--- a/src/frontend/driver.c
++++ b/src/frontend/driver.c
+@@ -309,8 +309,8 @@ int main(int argc, const char **argv)
+   SDL_Window *window;
+   window = SDL_CreateWindow(window_title,
+     SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+-    700, 900,
+-    SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE
++    640, 600,
++    SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
+   );
+ 
+   if (window == NULL)
+diff --git a/src/frontend/main.c b/src/frontend/main.c
+index c202294..4bf3439 100644
+--- a/src/frontend/main.c
++++ b/src/frontend/main.c
+@@ -23,6 +23,10 @@
+  */
+ 
+ #include <SDL2/SDL.h>
++#include <zlib.h>
++#ifdef __APPLE__
++#include <mach/mach_time.h>
++#endif
+ #include <string.h>
+ #include <time.h>
+ #include <poll.h>
+@@ -123,11 +127,54 @@ static float zoom_factor(int count)
+   return expf((float)count / 5000.0f);
+ }
+ 
++// Benchmark observers; production compile/render/event scheduling stays intact.
++static unsigned bench_revision;
++static bool bench_ready, bench_snapshot;
++static double bench_now(void)
++{
++#ifdef __APPLE__
++  static mach_timebase_info_data_t timebase;
++  if (!timebase.denom) mach_timebase_info(&timebase);
++  return (double)mach_absolute_time() * timebase.numer / timebase.denom / 1000000.0;
++#else
++  struct timespec ts;
++  clock_gettime(CLOCK_MONOTONIC, &ts);
++  return ts.tv_sec * 1000.0 + ts.tv_nsec / 1000000.0;
++#endif
++}
++
+ static void render(fz_context *ctx, ui_state *ui)
+ {
+   SDL_SetRenderDrawColor(ui->sdl_renderer, 0, 0, 0, 255);
+   SDL_RenderClear(ui->sdl_renderer);
+   txp_renderer_render(ctx, ui->doc_renderer);
++  double submitted = bench_now();
++  if (bench_ready && bench_revision) {
++    int w, h; SDL_GetRendererOutputSize(ui->sdl_renderer, &w, &h);
++    SDL_FRect page; float scale;
++    txp_renderer_page_position(ctx, ui->doc_renderer, &page, NULL, &scale);
++    SDL_RendererInfo info; SDL_GetRendererInfo(ui->sdl_renderer, &info);
++    fprintf(stderr, "REX_BENCH {\"type\":\"draw\",\"revision\":%u,\"now\":%.6f,\"viewport\":[%d,%d],\"pagePixels\":[%.6f,%.6f],\"scale\":%.9f,\"renderer\":\"%s\",\"flags\":%u}\n",
++      bench_revision, submitted, w, h, page.w, page.h, scale, info.name, info.flags);
++    bench_ready = false;
++  }
++  if (bench_snapshot && txp_renderer_get_contents(ctx, ui->doc_renderer)) {
++    int w, h; SDL_GetRendererOutputSize(ui->sdl_renderer, &w, &h);
++    unsigned char *pixels = malloc(w * h * 4);
++    if (SDL_RenderReadPixels(ui->sdl_renderer, NULL, SDL_PIXELFORMAT_ARGB8888, pixels, w * 4)) abort();
++    unsigned long pixel_hash = crc32(0, pixels, w * h * 4); free(pixels);
++    fz_buffer *buffer = fz_new_buffer(ctx, 4096);
++    fz_output *output = fz_new_output_with_buffer(ctx, buffer);
++    fz_device *device = fz_new_trace_device(ctx, output);
++    fz_run_display_list(ctx, txp_renderer_get_contents(ctx, ui->doc_renderer), device, fz_identity, fz_infinite_rect, NULL);
++    fz_close_device(ctx, device); fz_drop_device(ctx, device);
++    fz_close_output(ctx, output); fz_drop_output(ctx, output);
++    unsigned char *data; size_t length = fz_buffer_storage(ctx, buffer, &data);
++    unsigned long trace_hash = crc32(0, data, length);
++    fprintf(stderr, "REX_BENCH {\"type\":\"snapshot\",\"revision\":%u,\"pixels\":%lu,\"trace\":%lu,\"traceBytes\":%zu}\n",
++      bench_revision, pixel_hash, trace_hash, length);
++    fz_drop_buffer(ctx, buffer); bench_snapshot = false;
++  }
+   SDL_RenderPresent(ui->sdl_renderer);
+ }
+ 
+@@ -922,6 +969,7 @@ static void display_page(struct persistent_state *ps, ui_state *ui)
+   fz_display_list *dl = send(render_page, ui->eng, ps->ctx, ui->page);
+   txp_renderer_set_contents(ps->ctx, ui->doc_renderer, dl);
+   fz_drop_display_list(ps->ctx, dl);
++  bench_ready = dl != NULL;
+   schedule_event(RENDER_EVENT);
+ }
+ 
+@@ -968,6 +1016,19 @@ static void interpret_command(struct persistent_state *ps,
+                               vstack *stack,
+                               val command)
+ {
++  if (val_is_array(command) && val_array_length(ps->ctx, stack, command)) {
++    val verb = val_array_get(ps->ctx, stack, command, 0);
++    if (val_is_string(verb)) {
++      const char *name = val_as_string(ps->ctx, stack, verb);
++      if (!strcmp(name, "rex-clock")) {
++        fprintf(stderr, "REX_BENCH {\"type\":\"clock\",\"now\":%.6f}\n", bench_now());
++        return;
++      }
++      if (!strcmp(name, "rex-snapshot")) {
++        bench_snapshot = true; schedule_event(RENDER_EVENT); return;
++      }
++    }
++  }
+   struct editor_command cmd;
+   if (!editor_parse(ps->ctx, stack, command, &cmd))
+     return;
+@@ -999,6 +1060,7 @@ static void interpret_command(struct persistent_state *ps,
+       break;
+ 
+     case EDIT_CHANGE:
++      bench_revision++; bench_ready = false;
+       interpret_change(ps, ui, &cmd.change);
+       break;
+ 
+@@ -1260,6 +1322,11 @@ bool texpresso_main(struct persistent_state *ps)
+   }
+ 
+   ui->mouse_status = UI_MOUSE_NONE;
++  txp_renderer_config *bench_config = txp_renderer_get_config(ps->ctx, ui->doc_renderer);
++  bench_config->fit = FIT_WIDTH;
++  bench_config->crop = false;
++  bench_config->zoom = 794.0f / 640.0f;
++  bench_config->pan = fz_make_point(10000, 10000);
+   ui->last_mouse_x = -1000;
+   ui->last_mouse_y = -1000;
+   ui->last_click_ticks = SDL_GetTicks() - 200000000;

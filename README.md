@@ -23,18 +23,17 @@ Rex brings live LaTeX preview and PDF export to your browser, with typesetting t
 | Local compilation | **✓** | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ |
 | Offline use | **✓** | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ |
 | Paragraph-level preview updates² | **✓** | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | ✗ |
-| Warm browser API → Canvas submission³ | **~1.2 ms** | — | — | — | — | — | — | — | — | — |
-| Warm VS Code change event → Canvas replacement³ | — | — | — | — | — | — | — | — | 14.3–14.4 ms | — |
-| Warm native viewer → verified pixels³ | — | — | — | — | — | — | — | — | — | ~3.0 ms |
-| One-paragraph compilation (native)³ | **0.585–1.675 ms** | — | — | — | — | — | — | — | 0.604–1.789 ms | — |
-| Short / medium sample compilation (different machines)⁴ | **0.082 / 0.565 ms** | — | — | — | — | — | 0.79 / 6.11 ms | — | — | — |
+| Warm preview latency³ | **4.2–4.7 ms** | — | — | — | — | — | — | — | 8.0–9.4 ms | 7.9–8.3 ms |
+| Native paragraph latency⁴ | **0.59–1.57 ms** | — | — | — | — | — | — | — | 0.60–1.61 ms | — |
+| Open-source code⁵ | **✓ MIT** | ✓ GPL-2.0 | ✓ MIT source | ✓ AGPL-3.0 | ✓ MIT | ✓ AGPL-3.0 Community Edition | ✗ editor core | ✗ | ✓ MIT | ✓ MIT |
 
 - ✓ supported; ✗ unavailable in the compared workflow; ? unverified; — no matching timing.
 - Offline browser use requires cached resources. [Full comparison, scope and sources](docs/comparison.md#feature-comparison).
 - ¹ Mobile editing has platform limitations.
 - ² An edited paragraph updates independently in the document's typeset pages; global layout may need a full pass. Texifier and TeXpresso provide incremental preview with broader update units. [Preview scope](docs/comparison.md#desktop-writing-tools).
-- ³ Apple M4 measurements at 10 / 100 / 300 pages. Preview rows measure different workflows and are not a speed ranking: Rex calls `Session.edit()` directly in headless Chromium and ends at Canvas submission; realtime-tex starts at a real VS Code change event and includes its Rust / webview pipeline and animation-frame wait; TeXpresso includes pixel readback / verification. None measures physical keystroke → visible screen pixels. Native paragraph: compiler round trip, excluding editors, WASM and drawing. [Timing methodology and results](docs/comparison.md#performance-coverage-and-gaps).
-- ⁴ Different-machine references: Rex on Apple M4; texlode author-reported on Intel i7-1355U. Excludes drawing; not a product speed ranking. [Sample methodology](docs/performance.md#texlode-public-sample-measurements).
+- ³ Matched editor change → drawing submission on Apple M4, 10–300 pages; ranges show document-size medians. Same A4 layout, viewport, scale and edit cadence. TeXpresso uses native SDL with a plugin compatibility fix; excludes screen presentation. [Results and methodology](docs/comparison.md#matched-preview-measurements).
+- ⁴ Matched native request → decoded paragraph display list, first-paragraph edits at 10–300 pages; ranges show document-size medians. Excludes editors and drawing. TeXpresso has a page-level update path, with no matching paragraph-interface timing. [Compiler comparison](docs/comparison.md#native-compiler-comparison).
+- ⁵ Licenses describe project-owned code; bundled components retain their own licenses. [VS Code's Code - OSS source](https://code.visualstudio.com/docs/supporting/faq#licensing) and [LaTeX Workshop](https://github.com/James-Yu/LaTeX-Workshop) are MIT licensed; Microsoft's VS Code distribution has a separate product license. Overleaf's open-source entry refers to its [Community Edition](https://github.com/overleaf/overleaf). texlode's editor core is not public. [License scope and sources](docs/comparison.md#feature-comparison); [TeXstudio license](https://www.texstudio.org/#about).
 
 ## Get started
 
@@ -49,6 +48,8 @@ npm run dev
 Open [localhost:8080](http://127.0.0.1:8080). Rex shows the built-in document by default; reopen saved projects from **Open → Recent**, or enable **Open → Recent → Open last project on startup**. Import a project with **Open → File…** or try [examples/](examples/). **Open → Folder…** preserves nested paths; the file selector edits imported source files. **Download → Project (.rex)** saves a portable file containing every source and asset. The preview updates as you type; use **Recompile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
 
 To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
+
+For a smaller web-only deployment, use `npm run build:hosted`. It omits the duplicate local-file resource archive; hosted compilation and cached offline use are unchanged. Use `npm run build` when you also need to open `dist/index.html` directly.
 
 You can also run `npm run build` and open `dist/index.html` directly in a browser, without a local server or network connection. Keep the entire `dist/` folder together. The editor starts while workers load compiler resources; bundled font tables reduce first-run font processing. Local file mode keeps a paragraph compiler running for live edits and recompiles the full document after typing pauses.
 
@@ -76,6 +77,10 @@ npm run bench  # requires native lualatex
 | `docs/` | User guide, architecture, comparisons and benchmark evidence |
 
 Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. Hosted application ES modules are served directly; the editor dependency and local file mode are bundled during build, with no application backend.
+
+`npm ci` automatically trims installed dependencies to the distributions Rex uses. It retains the Binaryen JavaScript API, esbuild platform binary, Playwright, Node test APIs, setup inputs and licences; unused native WASM CLIs, Node Canvas, alternative library builds and other language modes are removed. Run `npm run clean:deps` to apply the same trim to an existing install. This changes development dependencies only; the complete local-file and hosted application resources are preserved.
+
+Run `npm run clean` to remove downloaded package archives and external benchmark dependencies, build products and application caches. It preserves Rex's dependencies, runtime assets, distribution, reports, experimental source edits and latest font / Asyncify build caches. External comparison benchmarks need their dependencies rebuilt or downloaded after cleaning.
 
 Read the [user guide](docs/guide.md), [project structure](docs/architecture.md), [feature and performance comparisons](docs/comparison.md), [benchmark methodology](docs/performance.md) and [contribution guidelines](CONTRIBUTING.md).
 

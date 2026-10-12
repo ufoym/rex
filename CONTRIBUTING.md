@@ -18,6 +18,43 @@ npm run bench  # when changing compilation or rendering performance
 
 Explain the problem, resulting behavior and validation in the pull request. Preserve frozen layout evidence; explain geometry changes rather than regenerating fixtures to hide them. Keep dependencies, lockfiles, download checksums and license notices consistent. Do not commit `vendor/`, `dist/` or `artifacts/`.
 
+## Commit messages
+
+Use the same format for commits and squash-merge titles:
+
+```text
+type(scope): description
+```
+
+The scope is optional: `type: description` is valid. Use a short, lowercase scope naming the affected area, such as `editor`, `compiler` or `preview`.
+
+| Type | Change |
+| --- | --- |
+| `feat` | New user-facing behavior |
+| `fix` | Bug fix |
+| `perf` | Performance improvement |
+| `refactor` | Code restructuring without changing behavior |
+| `docs` | Documentation |
+| `test` | Tests or test infrastructure |
+| `bench` | Benchmark drivers or results |
+| `build` | Build tooling, dependencies or runtime setup |
+| `ci` | CI or deployment workflows |
+| `chore` | Other repository maintenance |
+| `revert` | Reverting a previous change |
+
+Write the description in English, start with a lowercase imperative verb, and omit a trailing period. Keep the complete subject at most 72 characters. Describe the resulting change rather than using vague subjects such as `update files` or `fix bug`.
+
+Examples:
+
+```text
+feat(editor): add recent project restoration
+fix(preview): follow the editor cursor after recompilation
+bench: measure realtime-tex preview latency
+docs: define the commit message format
+```
+
+When context is useful, leave a blank line after the subject and explain why the change is needed and how it was validated. Mark an incompatible change with `!` before the colon, for example `feat(compiler)!: change the worker protocol`, and add a `BREAKING CHANGE:` footer explaining the migration. For a revert, use `revert: <original description>` and identify the reverted commit hash in the body.
+
 ## Security and community
 
 Report sensitive vulnerabilities through the repository's private vulnerability reporting channel when available. Otherwise request a private contact from the maintainer without posting exploit details publicly. Include affected versions, impact and a minimal reproduction privately. Report issues against the current source revision; no separate release support policy is established yet.

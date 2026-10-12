@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Unified diff context uses a single space for empty lines.
+benchmarks/*.patch whitespace=-blank-at-eol
