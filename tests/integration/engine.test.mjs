@@ -223,5 +223,10 @@ test("the starter compiles without serial network reads after loading resources"
   }});
   const output = await coldPass(fresh, {files: {"main.tex": starterDocument}, main: "main.tex"}, {}, {});
   assert.equal(new TextDecoder().decode(output.pdf.slice(0, 4)), "%PDF");
+  assert.ok(!output.logs.some(line => line.includes("Missing character:")), output.logs.join("\n"));
+  const glyphs = output.pages.flatMap(page => page.lines.flatMap(line => line.items.filter(item => item[0] === "g")));
+  for (const char of ["中", "こ", "한", "H"])
+    assert.ok(glyphs.some(item => item[2] === char.codePointAt(0)), "Starter lost a language's glyph: " + char);
+  assert.ok(Object.keys(output.fonts).some(name => name.includes("NanumMyeongjo-Regular")), "Starter lacks its Korean font");
   assert.deepEqual(serial, [], "Startup dependencies should be fetched asynchronously before entering TeX");
 });

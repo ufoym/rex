@@ -22,6 +22,16 @@ await page.waitForFunction(
 );
 await page.waitForFunction(() => Boolean(window.rex?.session.warmed), {}, {polling:100});
 await page.evaluate(() => window.rex.session.warmed);
+const starter = await page.evaluate(async () => {
+  const texts = [];
+  for (let n = 1; n <= rex.renderer.pdf.numPages; n++)
+    texts.push((await (await rex.renderer.pdf.getPage(n)).getTextContent()).items.map(item => item.str).join(""));
+  return {text: texts.join("\n"), log: document.querySelector("#log").textContent, fonts: [...rex.renderer.fonts.keys()]};
+});
+for (const text of ["你好", "こんにちは", "안녕하세요", "Hello", "Matrices and piecewise functions", "A TikZ diagram", "The TeXbook"])
+  assert.ok(starter.text.includes(text), "Starter feature is missing from its PDF: " + text);
+assert.ok(!starter.log.includes("Missing character:"), starter.log);
+assert.ok(starter.fonts.some(name => name.includes("NanumMyeongjo-Regular")), "Korean font cannot be rendered on Canvas");
 // Direct glyph matrices must retain the Canvas transform/clip and both font orientations.
 assert.ok(await page.evaluate(async () => {
   const {Renderer} = await import('./assets/ui/renderer.js'), SP = 65536 * 72.27 / 96;

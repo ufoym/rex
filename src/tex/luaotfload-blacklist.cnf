@@ -1,0 +1,4 @@
+# Keep large Chinese fonts out of the automatic font-name database scan.
+# CTeX's Fandol fontset loads them directly by filename when needed.
+/texmf/fonts/opentype/public/fandol
+/texmf/fonts/truetype/public/nanum

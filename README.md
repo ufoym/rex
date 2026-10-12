@@ -5,6 +5,7 @@
 Rex keeps LuaTeX running in a WebAssembly worker and typesets verified paragraphs as you edit. A full compilation after you pause updates pagination, references and the exported PDF. Your project stays in the browser.
 
 - Precise TeX glyph positioning, including OpenType and Type 1 math fonts.
+- A [multilingual starter](src/core/starter.js) with Chinese, Japanese, Korean and English, complex mathematics, tables and TikZ.
 - Persistent paragraph compilation and preloaded preambles.
 - PDF preview and export, TikZ caching, BibTeX, Biber and MakeIndex.
 - Editable multi-file projects, complete local storage and paragraph navigation.

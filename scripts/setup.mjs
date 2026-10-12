@@ -46,7 +46,7 @@ async function setupEngine(temp) {
   await mkdir(path.join(dest, "vfs"), { recursive: true });
   for (const file of ["luatex.mjs", "luatex.wasm", "logger.js", "vfs/bundle.js", "vfs/lazyfs.js"])
     await cp(path.join(dist, file), path.join(dest, file), { recursive: true });
-  for (const name of [...bundles.filter(name => name !== 'bibliography'), 'hot.json'])
+  for (const name of [...bundles.filter(name => !['bibliography', 'chinese'].includes(name)), 'hot.json'])
     await cp(
       path.join(dist, "bundles", name),
       path.join(dest, "bundles", name),
@@ -118,10 +118,66 @@ async function setupBibliography(temp) {
   await copyFile('node_modules/pdf-lib/LICENSE.md','vendor/pdf-lib-LICENSE.md');
   console.log('Bibliography WASM, BibLaTeX 3.22, styles and PDF cache tools ready.');
 }
+async function setupChinese(temp) {
+  // Match the bundled TeX Live 2025 kernel; newer ctex requires LaTeX 2026.
+  const base = 'https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2025/tlnet-final/archive/';
+  const packages = {
+    'ctex': 'd2e2d951997f1db32b01e803515987a921a6f24a6326d795c42671e6a7444ac4',
+    'ctex.doc': '7102c3d85e8b9269d6643f38c5019e43d5e40667f104dbcc08fd03f2dcdad1bc',
+    'luatexja': '9ebfdb2cbe0200b766fb37c33f7baee19d7c6bd4c50cff51618962cedbc1afa4',
+    'luatexja.doc': '889a32068d2ce440ef860683d87df59cb233759adfa1f526e6dac1c1a504c2d7',
+    'chinese-jfm': 'fc27ee146296b0efadd7d50c8d3087a545021f101881507f4e83008ef125047e',
+    'chinese-jfm.doc': 'd5aa369c0553c3120893b930a8086a21da93a44d49d2c34ad64cabc8ab0d6fe1',
+    'zhnumber': 'dbcc134ce2f0cb8fbe9ad512e4d3a7a897a0d78201fe7568850443a65e59f15b',
+    'zhnumber.doc': '0467850ef4369d75df5fcd688051822030131335cdabf1a3ba33ed44e433d1fd',
+    'lua-uni-algos': 'a7f9a14f2cb5dedd3d67997d9db3de9cfdef7003a797b33892fa8728578dfb95',
+    'lua-uni-algos.doc': '583f74d7e49510b0bb6518c9b4072d760eda1b579974313facb9d8788bb2bbbd',
+    'fandol': '0b71eebb1c9b9fbd1eb4281f8af3f6c1a556a394ba2b6eae69ed9bb76c5fa56a',
+    'fandol.doc': 'bc612f810ba56397700b678adecd43613f35a6fce9f4204c3357b874709843d0',
+  };
+  const unpacked = path.join(temp, 'chinese');
+  await mkdir(unpacked, {recursive: true});
+  for (const [name, hash] of Object.entries(packages)) {
+    const archive = path.join(temp, name + '.tar.xz');
+    await download(base + name + '.tar.xz', archive, hash);
+    command('tar', ['-xJf', archive, '-C', unpacked]);
+  }
+  const dest = 'vendor/engine/bundles/chinese';
+  await rm(dest, {recursive: true, force: true});
+  await mkdir(path.join(dest, 'files'), {recursive: true});
+  for (const name of ['tex', 'fonts'])
+    await cp(path.join(unpacked, name), path.join(dest, 'files', name), {recursive: true});
+  // Keep package metadata and licence/readme files; PDFs aren't runtime assets.
+  await cp(path.join(unpacked, 'tlpkg'), path.join(dest, 'tlpkg'), {recursive: true});
+  await cp(path.join(unpacked, 'doc'), path.join(dest, 'doc'), {
+    recursive: true, filter: file => !file.endsWith('.pdf'),
+  });
+  const koreanFonts = path.join(dest, 'files/fonts/truetype/public/nanum');
+  await mkdir(koreanFonts, {recursive: true});
+  const koreanSource = 'https://raw.githubusercontent.com/google/fonts/bd8f81ddb5c74d5c8897b36ad88b440266245103/ofl/nanummyeongjo/';
+  await download(koreanSource + 'NanumMyeongjo-Regular.ttf', path.join(koreanFonts, 'NanumMyeongjo-Regular.ttf'),
+    '7ed9e8653a8ed04285d51dc343ffea6eb3d9c73afc27383ea8929ee4ffd03205');
+  await mkdir(path.join(dest, 'doc/fonts/nanum'), {recursive: true});
+  await download(koreanSource + 'OFL.txt', path.join(dest, 'doc/fonts/nanum/OFL.txt'),
+    '8eb1c1019fe7fe6d0b6e7d7bbbba1d9cbdd969d8c5f26455708f6cfb8a77284c');
+  const files = {};
+  async function walk(dir, prefix = '') {
+    for (const entry of (await readdir(dir, {withFileTypes: true})).sort((a, b) => a.name.localeCompare(b.name))) {
+      const name = prefix + entry.name, file = path.join(dir, entry.name);
+      if (entry.isDirectory()) await walk(file, name + '/');
+      else { const bytes = await readFile(file); files[name] = {size: bytes.length, sha: sha(bytes)}; }
+    }
+  }
+  await walk(path.join(dest, 'files'));
+  await writeFile(path.join(dest, 'manifest.json'), JSON.stringify({name: 'chinese', version: 'texlive-2025-final', files, eager: []}));
+  console.log('CJK packages, Fandol and Nanum Myeongjo fonts ready.');
+}
 const temp = await mkdtemp(path.join(tmpdir(), 'rex-assets-'));
 try {
-  if (!process.argv.includes('--bibliography')) await setupEngine(temp);
-  await setupBibliography(temp);
+  const bibliographyOnly = process.argv.includes('--bibliography'), chineseOnly = process.argv.includes('--chinese');
+  if (!bibliographyOnly && !chineseOnly) await setupEngine(temp);
+  if (!chineseOnly) await setupBibliography(temp);
+  if (!bibliographyOnly) await setupChinese(temp);
   await mkdir('vendor', {recursive:true});
   await download('https://mirrors.mit.edu/CTAN/install/macros/luatex/generic/ctablestack.tds.zip', path.join(temp, 'ctablestack.tds.zip'), 'a975aa44f20d7705b4e2d41a63008d00e4439143999cb12acce75f24d5d56943');
   command('unzip', ['-q', path.join(temp, 'ctablestack.tds.zip'), '-d', path.join(temp, 'ctablestack')]);

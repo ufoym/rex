@@ -5,6 +5,7 @@
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "setup:bibliography": "node scripts/setup.mjs --bibliography",
+    "setup:chinese": "node scripts/setup.mjs --chinese",
     "dev": "node scripts/serve.mjs --source",
     "build": "node scripts/build.mjs",
     "start": "node scripts/serve.mjs",
@@ -15,7 +16,8 @@
     "test:webkit": "node tests/browser/webkit.mjs",
     "test:static": "node tests/browser/offline.mjs",
     "test:full": "node tests/browser/full.mjs",
-    "test:all": "npm run check && npm test && npm run test:browser && npm run test:static && npm run test:webkit && npm run test:full",
+    "test:chinese": "node tests/browser/chinese.mjs",
+    "test:all": "npm run check && npm test && npm run test:browser && npm run test:static && npm run test:webkit && npm run test:full && npm run test:chinese",
     "bench": "node benchmarks/benchmark.mjs",
     "bench:compare": "node benchmarks/compare.mjs",
     "bench:texlode": "node benchmarks/texlode.mjs"

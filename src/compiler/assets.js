@@ -13,8 +13,10 @@ export const bundles = [
   "opentype",
   "otf-fonts",
   "bibliography",
+  "chinese",
 ];
 export const texFiles = [
+  "luaotfload-blacklist.cnf",
   "rex-json.lua",
   "rex-state.lua",
   "rex-nodes.lua",

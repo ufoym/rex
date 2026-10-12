@@ -2,6 +2,8 @@
 
 ## Editing a project
 
+On a first visit, the built-in feature tour demonstrates Chinese, Japanese, Korean and English in one paragraph, font styles and colours, matrices, piecewise functions, aligned equations, integrals, series, limits, tables, lists, footnotes, cross-references, citations and a TikZ diagram. It is a single source file using bundled packages and fonts. Saved projects take precedence on later visits. The richer example loads its CJK fonts on startup; resource progress is shown while those files download.
+
 Choose **Open project** to import a portable `.rex` file or select the main `.tex` file together with `.bib`, images and local packages. **Open folder** preserves nested paths and removes the selected folder's outer name. The [multi-file example](../examples/project/) includes a child document and an index; the [bibliography example](../examples/bibliography/) requires both `main.tex` and `references.bib`. With a flat file picker, match the imported filenames to the paths in your source.
 
 The file selector edits imported text files; the root document remains the compilation entry point. Uniquely captured paragraphs in `input` / `include` files can update live. Repeated inputs and dependency changes use full compilation; paragraph splits and merges can update provisionally. A child-file change also invalidates the preloaded full-pass worker so that it cannot reuse stale input.
@@ -19,6 +21,22 @@ Choose **Show in preview** or press ⌘/Ctrl + Alt + J to highlight the captured
 BibTeX and BibLaTeX with either BibTeX or Biber run locally. Changed bibliography files regenerate `.bbl`; unchanged results are reused. Full compilation runs up to five passes for convergence. TikZ, circuitikz and pgfpicture regions can reuse PDF output when source, dependencies and captured state match. Pictures using references, dynamic state or unsupported constructs are redrawn.
 
 MakeIndex runs locally for ordinary `makeidx` documents and named `imakeidx` indexes. Literal `makeindex` options support local `.ist` styles (`-s`) and flags `-c`, `-g`, `-l`, `-r`. Results are cached by index input, options and the selected style files. Removing entries replaces the old index rather than retaining stale output. Unsupported programs or options produce a diagnostic. Macro-generated tool configuration, xindy, splitindex and glossary orchestration are outside this workflow. Indexing works offline once the existing tool resources have been loaded.
+
+## Chinese documents
+
+Import [examples/chinese.tex](../examples/chinese.tex), or use `\documentclass[fontset=fandol]{ctexart}`. Existing `article`, `book` or `report` documents can add `\usepackage[fontset=fandol]{ctex}` in the preamble. Rex bundles compatible CTeX, LuaTeX-ja, Chinese JFM and Fandol fonts for Chinese punctuation, line breaking, headings and mixed Chinese / English / mathematics. Chinese paragraphs support live editing and PDF export.
+
+```tex
+\documentclass[fontset=fandol]{ctexart}
+\begin{document}
+\section{中文标题}
+你好，世界！中文与 English、数学 $E=mc^2$ 可以混合排版。
+\end{document}
+```
+
+Choose `fontset=fandol` explicitly: the browser cannot use system fonts such as SimSun or PingFang. A plain `article` without a Chinese package still uses Latin fonts and will omit Chinese characters; check the compilation log for `Missing character` warnings. Fandol covers common simplified and traditional characters; uncommon characters may require an imported font with explicit file-based configuration. The starter's CJK fonts are prefetched at startup; additional resources load on demand. Loaded resources work offline. For an existing checkout, run `npm run setup:chinese` and `npm run build` to install and publish the additional resources.
+
+The starter also demonstrates Japanese kana using Fandol and Korean Hangul with the bundled Nanum Myeongjo font. Define `\newCJKfontfamily\koreanfont{NanumMyeongjo-Regular.ttf}` after loading CTeX, then group Korean text as `{\koreanfont 안녕하세요}`. This demonstrates mixed text; language-specific document classes and comprehensive Japanese / Korean localisation are outside the starter.
 
 ## How it works
 
@@ -50,6 +68,7 @@ Follow the setup commands in the [README](../README.md). Set `PORT=8082 npm run 
 | `npm run test:webkit` | Mobile WebKit under `/rex/`: service-worker isolation, download progress, PDF export, offline reload and live editing |
 | `npm run test:static` | Hosts without isolation headers, service worker and offline editing |
 | `npm run test:full` | Standby, PDF picture equivalence, three bibliography backends, named indexes / styles / removal, subpath hosting and examples |
+| `npm run test:chinese` | Chinese import, PDF text, Canvas font outlines, live edits, export and offline reload under a subpath |
 | `npm run bench` | End-to-end edits in 10 / 100 / 300-page documents and native LuaLaTeX reference |
 | `npm run bench:compare -- /path/to/checkout` | Optional native compiler comparison with an external checkout; see the performance methodology |
 
