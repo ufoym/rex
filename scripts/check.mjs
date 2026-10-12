@@ -20,8 +20,10 @@ for (const file of files) {
   if (/\.(m?js)$/.test(file)) {
     const checked = spawnSync(process.execPath, ["--check", path.join(root, file)], { encoding: "utf8" });
     if (checked.status !== 0) throw Error(checked.stderr);
-    const references = text.matchAll(/(?:\bfrom\s+|\bimport\s*\(\s*|\bnew URL\(\s*)["'](\.[^"']+)["']/g);
-    for (const [, reference] of references) {
+    const references = text.matchAll(/(\bfrom\s+|\bimport\s*\(\s*|\bnew URL\(\s*)["'](\.[^"']+)["']/g);
+    for (const [, kind, reference] of references) {
+      // Build cache output directories need not exist in a fresh hosted checkout.
+      if (kind.startsWith("new URL") && file.startsWith("scripts/") && reference.startsWith("../artifacts/") && reference.endsWith("/")) continue;
       const browserAsset = ["tests/browser/", "benchmarks/", "public/"].some(prefix => file.startsWith(prefix))
         && /^\.\/(?:assets|vendor)\//.test(reference);
       const target = browserAsset ? path.resolve(root, "dist", reference) : path.resolve(root, path.dirname(file), reference);
