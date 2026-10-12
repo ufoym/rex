@@ -75,9 +75,6 @@ Local measurements use **Apple M4**. Document rows use 10 / 100 / 300 pages; **�
 | [Native LuaLaTeX full pass](performance.md#detailed-product-results)† | 10 | 73.820 | 83.940 | — | — | 13.7% faster |
 | [Native LuaLaTeX full pass](performance.md#detailed-product-results)† | 100 | 387.425 | 309.756 | — | — | 25.1% slower |
 | [Native LuaLaTeX full pass](performance.md#detailed-product-results)† | 300 | 1031.865 | 834.078 | — | — | 23.7% slower |
-| [Preceding Rex browser build](performance.md#before-and-after-the-additions) | 10 | 1.210 | 1.680 | 1.870 | 2.855 | 38.8% faster |
-| [Preceding Rex browser build](performance.md#before-and-after-the-additions) | 100 | 1.215 | 1.765 | 1.885 | 2.935 | 45.3% faster |
-| [Preceding Rex browser build](performance.md#before-and-after-the-additions) | 300 | 1.205 | 2.080 | 1.860 | 3.145 | 72.6% faster |
 | [texlode paper: short, vanilla line breaking](performance.md#texlode-public-sample-measurements)‡§ | — | 0.030 | 0.170 | 0.032 | 0.960 | 5.67× cross-machine (typesetting) |
 | [texlode paper: medium, vanilla line breaking](performance.md#texlode-public-sample-measurements)‡§ | — | 0.371 | 0.700 | 0.385 | 0.890 | 1.89× cross-machine (typesetting) |
 | [texlode paper: long, vanilla line breaking](performance.md#texlode-public-sample-measurements)‡§ | — | 1.077 | 1.990 | 1.149 | 2.410 | 1.85× cross-machine (typesetting) |

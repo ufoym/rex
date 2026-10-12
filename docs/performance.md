@@ -12,13 +12,12 @@ Rex versus realtime-tex at the shared native compiler boundary and Rex versus it
 
 The README aggregates the recorded median timings using an equally weighted geometric mean: `ratio = exp(mean(log(baseline median / Rex median)))`, then `% faster = (ratio − 1) * 100`. Each case uses the median of its three run-level medians from the [raw report](performance.json). Ratios are computed before rounding; this is a workload summary, not a pooled edit percentile or a statistical significance estimate.
 
-| Baseline | Included cases | Geometric mean ratio | Overall recorded timing |
+| Competitor | Included cases | Geometric mean ratio | Overall recorded timing |
 | --- | --- | ---: | --- |
 | TeXpresso | First-paragraph preview edits at 10 / 100 / 300 pages | 2.49× | 149.1% faster |
 | realtime-tex | All 9 text cases (first / middle / last at 10 / 100 / 300 pages), plus the 300-page math case | 1.03× | 3.2% faster |
-| Preceding Rex browser build | First-paragraph preview edits at 10 / 100 / 300 pages | 1.52× | 51.6% faster |
 
-TeXpresso uses `comparison.texpresso.summary[].medianMs / final.summary[].median` matched by page count. Its timer includes pixel readback and verification while Rex stops at Canvas submission, so the aggregate compares these recorded boundaries. realtime-tex uses `comparison.realtimeTex.results[].summary`, dividing the baseline's `medianMs` by Rex's for all ten cases where both outputs validate. This includes the case where Rex is slower; the style case is excluded because upstream output validation fails. It measures native compilers, excluding editor sessions, WASM and rendering. The preceding build uses `parity.before.browser.summary[].median / final.summary[].median`, matched by page count with the same browser timer. Burst runs, cold starts, full passes and cross-machine texlode evidence are separate and do not enter these aggregates. Individual median / P95 results remain below.
+TeXpresso uses `comparison.texpresso.summary[].medianMs / final.summary[].median` matched by page count. Its timer includes pixel readback and verification while Rex stops at Canvas submission, so the aggregate compares these recorded boundaries. realtime-tex uses `comparison.realtimeTex.results[].summary`, dividing the baseline's `medianMs` by Rex's for all ten cases where both outputs validate. This includes the case where Rex is slower; the style case is excluded because upstream output validation fails. It measures native compilers, excluding editor sessions, WASM and rendering. Burst runs, cold starts, full passes and cross-machine texlode evidence are separate and do not enter these aggregates. Individual median / P95 results remain below.
 
 ## Auditing the comparison summary
 
@@ -27,7 +26,6 @@ The comparison summary displays Rex median, baseline median, Rex P95, baseline P
 - Browser Rex: `final.summary`; individual samples and the three runs are in `final.rounds[].results[]`.
 - TeXpresso: `comparison.texpresso.summary` and `comparison.texpresso.rounds[]`, including pixel verification and source hashes.
 - Native Rex / realtime-tex: `comparison.realtimeTex.results[]` where `kind = text` and `position = first`; each contains `summary`, `rounds` and reference hashes.
-- Preceding browser build: `parity.before.browser.summary` and `parity.before.browser.rounds[].results[]`.
 - Warm full passes: `final.summary[].warmBackgroundMs` and `nativeWarmBackgroundMs`; the three individual durations are in `final.rounds[].results[]`.
 
 For example, at 100 pages the native first-paragraph medians are Rex 1.566 ms and realtime-tex 1.610 ms, giving 2.8% faster. Rex's P95 is 1.4% slower. Median and tail latency need separate assessment.
