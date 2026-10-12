@@ -18,6 +18,8 @@ try {
   await page.reload();
   await page.waitForFunction(() => window.rex?.session.warmed);
   await page.evaluate(() => rex.session.warmed);
+  assert.equal(await page.evaluate(() => rex.session.live.closed), false,
+    "Startup warming closed the live engine: " + await page.locator("#log").textContent());
   assert.equal(await page.evaluate(() => crossOriginIsolated), true);
   assert.ok(await page.evaluate(() => rex.session.layout.pdf.length > 1000));
   assert.ok(await page.evaluate(() => startupStatuses.some(s => /Loading engine resources \d+\/\d+/.test(s))),
@@ -33,6 +35,8 @@ try {
   await page.reload();
   await page.waitForFunction(() => window.rex?.session.warmed);
   await page.evaluate(() => rex.session.warmed);
+  assert.equal(await page.evaluate(() => rex.session.live.closed), false,
+    "Offline warming closed the live engine: " + await page.locator("#log").textContent());
   await page.locator("#editor").fill(await page.locator("#editor").inputValue().then(s => s.replace("Edit this paragraph", "Edit this offline paragraph")));
   await page.waitForFunction(() => window.rex?.session.lastTiming);
   await mkdir("artifacts/tests", {recursive: true});

@@ -55,10 +55,11 @@ export class LiveEngine {
               reject(Error("Engine closed"));
               return;
             }
+            // Cold CJK font processing can exceed five seconds on slower CPUs.
             const timer = setTimeout(() => {
               reject(Error("Paragraph compilation timed out"));
               this.close();
-            }, 5000);
+            }, message.op === "compile" ? 30000 : 5000);
             this.resolve = (data) => {
               clearTimeout(timer);
               resolve(data);
