@@ -19,12 +19,15 @@ export async function openBrowser({ isolation = true, viewport, basePath = "/", 
     const page = await browser.newPage({...contextOptions, ...(viewport ? {viewport} : {})});
     page.setDefaultTimeout(120000);
     const errors = [];
-    page.on("pageerror", error => errors.push(error.message));
+    const recordError = error => errors.push(error.message);
+    page.on("pageerror", recordError);
     await page.goto(server.url);
     return {
       browser, page,
       stopHosting: async () => { await server.close(); hosting = false; },
       close: async () => {
+        // Intentional teardown can cancel pending module imports in WebKit.
+        page.off("pageerror", recordError);
         try { await browser.close(); }
         finally { if (hosting) await server.close(); }
         assert.deepEqual(errors, [], "Uncaught browser errors");
