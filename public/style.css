@@ -1,13 +1,49 @@
 :root {
+  color-scheme: light;
+  --text: #263146;
+  --background: #f7f8fa;
+  --surface: #fff;
+  --bar: #fdfdfe;
+  --border: #dfe5ed;
+  --muted: #768198;
+  --brand: #224d41;
+  --button-text: #35435a;
+  --button-hover: #f2f5f8;
+  --primary: #265b4b;
+  --primary-hover: #1d4b3c;
+  --editor-text: #37435c;
+  --preview: #edf0f4;
+  --accent: #488571;
+  --log-background: #202836;
+  --log-text: #c7d5e5;
   font-family:
     Inter,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  color: #263146;
-  background: #f7f8fa;
+  color: var(--text);
+  background: var(--background);
   font-size: 13px;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --text: #dce3ee;
+  --background: #151a23;
+  --surface: #1c2330;
+  --bar: #202836;
+  --border: #354155;
+  --muted: #a2aec2;
+  --brand: #8bd4b7;
+  --button-text: #dce3ee;
+  --button-hover: #2b3546;
+  --primary: #306e59;
+  --primary-hover: #398168;
+  --editor-text: #dce3ee;
+  --preview: #121720;
+  --accent: #8bd4b7;
+  --log-background: #10151e;
+  --log-text: #c7d5e5;
 }
 * {
   box-sizing: border-box;
@@ -20,8 +56,8 @@ body {
 }
 header {
   height: 65px;
-  background: #fff;
-  border-bottom: 1px solid #e4e8ee;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -31,7 +67,7 @@ header {
 .brand {
   font-family: Georgia, serif;
   font-size: 29px;
-  color: #224d41;
+  color: var(--brand);
   font-weight: 700;
   letter-spacing: -1px;
 }
@@ -40,7 +76,7 @@ header {
   letter-spacing: 1px;
   font-weight: 500;
   margin-left: 20px;
-  color: #6d7888;
+  color: var(--muted);
 }
 .actions {
   display: flex;
@@ -48,30 +84,39 @@ header {
   gap: 8px;
 }
 button,
-.button {
+.button,
+#theme {
   font: inherit;
   cursor: pointer;
-  border: 1px solid #dce2e9;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
-  color: #35435a;
+  background: var(--surface);
+  color: var(--button-text);
   padding: 8px 13px;
 }
 button:hover,
-.button:hover {
-  background: #f2f5f8;
+.button:hover,
+#theme:hover {
+  background: var(--button-hover);
+}
+button:focus-visible,
+.button:focus-within,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 button:disabled {
   opacity: 0.5;
   cursor: wait;
 }
 .primary {
-  background: #265b4b;
+  background: var(--primary);
   color: white;
-  border-color: #265b4b;
+  border-color: var(--primary);
 }
 .primary:hover {
-  background: #1d4b3c;
+  background: var(--primary-hover);
 }
 kbd {
   margin-left: 12px;
@@ -92,8 +137,8 @@ main {
   min-width: 0;
 }
 .editor-pane {
-  background: #fff;
-  border-right: 1px solid #dfe5ed;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
 }
 .pane-bar {
   height: 42px;
@@ -101,20 +146,21 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  border-bottom: 1px solid #e3e7ed;
+  border-bottom: 1px solid var(--border);
   font-size: 12px;
   flex-shrink: 0;
-  background: #fdfdfe;
+  background: var(--bar);
 }
 .pane-bar button {
   font-size: 11px;
   padding: 4px 10px;
 }
 .subtle {
-  color: #919aaa;
+  color: var(--muted);
   font-size: 11px;
 }
 #filename { max-width: 65%; border: 0; background: transparent; color: inherit; font: inherit; }
+#filename option { background: var(--surface); color: var(--text); }
 .source-marker { position: absolute; pointer-events: none; border: 1px solid #488571; background: #48857110; border-radius: 3px; }
 textarea {
   border: 0;
@@ -123,7 +169,7 @@ textarea {
   flex: 1;
   width: 100%;
   padding: 24px;
-  color: #37435c;
+  color: var(--editor-text);
   tab-size: 2;
   font:
     13px/1.85 "SFMono-Regular",
@@ -131,7 +177,7 @@ textarea {
     monospace;
   white-space: pre;
   overflow: auto;
-  background: #fff;
+  background: var(--surface);
 }
 .editor-footer {
   height: 29px;
@@ -140,8 +186,8 @@ textarea {
   justify-content: space-between;
   padding: 0 18px;
   font-size: 10px;
-  color: #8c96a6;
-  border-top: 1px solid #edf0f4;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
 }
 #preview {
   flex: 1;
@@ -151,9 +197,10 @@ textarea {
   flex-direction: column;
   align-items: center;
   gap: 24px;
-  background: #edf0f4;
+  background: var(--preview);
 }
 .page {
+  color-scheme: light;
   position: relative;
   flex-shrink: 0;
   background: #fff;
@@ -161,16 +208,16 @@ textarea {
 }
 .welcome {
   margin: auto;
-  color: #788498;
+  color: var(--muted);
 }
 footer {
   height: 35px;
-  border-top: 1px solid #dfe5ed;
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 0 18px;
-  background: #fff;
+  background: var(--surface);
   font-size: 11px;
   flex-shrink: 0;
 }
@@ -178,19 +225,19 @@ footer {
   width: 6px;
   height: 6px;
   border-radius: 100%;
-  background: #488571;
+  background: var(--accent);
 }
 #toggle-log {
   margin-left: auto;
   border: 0;
   padding: 4px;
   font-size: 11px;
-  color: #768198;
+  color: var(--muted);
 }
 #log {
   margin: 0;
-  background: #202836;
-  color: #c7d5e5;
+  background: var(--log-background);
+  color: var(--log-text);
   font: 11px/1.7 monospace;
   max-height: 220px;
   overflow: auto;
@@ -225,7 +272,8 @@ footer {
     gap: 4px;
   }
   .actions button,
-  .button {
+  .button,
+  #theme {
     padding: 7px;
     font-size: 11px;
   }

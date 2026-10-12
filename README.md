@@ -9,6 +9,7 @@ Rex keeps LuaTeX running in a WebAssembly worker and typesets verified paragraph
 - Persistent paragraph compilation and preloaded preambles.
 - PDF preview and export, TikZ caching, BibTeX, Biber and MakeIndex.
 - Editable multi-file projects, complete local storage and paragraph navigation.
+- Light and dark themes, with a saved preference and automatic system matching.
 - Static hosting and offline use of previously loaded resources.
 
 ## Performance
@@ -36,6 +37,8 @@ npm run dev
 Open [localhost:8080](http://127.0.0.1:8080). Edit the built-in document or import a project from [examples/](examples/). **Open folder** preserves nested paths; the file selector edits imported source files. **Save project** downloads a portable `.rex` file containing every source and asset. Use **Compile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
 
 To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
+
+Use **Theme** in the toolbar to choose **System**, **Light** or **Dark**. The choice survives refresh; **System** follows your device's appearance. PDF pages retain their original colours in every theme.
 
 For GitHub Pages, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions** in your repository. The [Pages workflow](.github/workflows/pages.yml) builds and verifies the site, then publishes `dist/` on every push to `main`. Once deployment succeeds, open the site URL shown in **Settings → Pages**. You can also run **Deploy GitHub Pages** manually from the Actions tab on `main`.
 

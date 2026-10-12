@@ -4,12 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Rex · Real-time TeX</title>
+    <script src="./assets/ui/theme.js"></script>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
     <header>
       <div class="brand">R<span>ex</span><small>Real-time TeX</small></div>
       <div class="actions">
+        <select id="theme" aria-label="Color theme">
+          <option value="system">Theme: System</option>
+          <option value="light">Theme: Light</option>
+          <option value="dark">Theme: Dark</option>
+        </select>
         <label class="button"
           >Open project<input id="open" type="file" multiple hidden /></label
         ><label class="button folder-button">Open folder<input id="open-folder" type="file" webkitdirectory multiple hidden /></label
