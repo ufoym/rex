@@ -135,6 +135,12 @@ async function setupChinese(temp) {
     'lua-uni-algos.doc': '583f74d7e49510b0bb6518c9b4072d760eda1b579974313facb9d8788bb2bbbd',
     'fandol': '0b71eebb1c9b9fbd1eb4281f8af3f6c1a556a394ba2b6eae69ed9bb76c5fa56a',
     'fandol.doc': 'bc612f810ba56397700b678adecd43613f35a6fce9f4204c3357b874709843d0',
+    'enumitem': '887fa546b820d8345d801404978a57876afe9ed22debcca736bb24d4f8338618',
+    'enumitem.doc': '874350e4b309129b7df0fc1aee797b8175a9ce45b908f663e65d47be2775b937',
+    'fancyhdr': '9dab3331ad37957d02875715bec27aed5fc19d3778a73600f630ec28169b950a',
+    'fancyhdr.doc': '8b7de9e0aa451309b4ab956870af8f3610a84e534aec3e9c18c83e411aeeb1ef',
+    'ipaex': '7db75b91663a5fa711d72fba2d1934580e0570c58d2937f5f54aa3ac7cf43e15',
+    'ipaex.doc': 'fc62df329dea13ec25279afcb8676edeb2016af034a2138d8cdb2ac1982089af',
   };
   const unpacked = path.join(temp, 'chinese');
   await mkdir(unpacked, {recursive: true});
@@ -147,7 +153,11 @@ async function setupChinese(temp) {
   await rm(dest, {recursive: true, force: true});
   await mkdir(path.join(dest, 'files'), {recursive: true});
   for (const name of ['tex', 'fonts'])
-    await cp(path.join(unpacked, name), path.join(dest, 'files', name), {recursive: true});
+    await cp(path.join(unpacked, name), path.join(dest, 'files', name), {
+      recursive: true,
+      // IPAex Mincho supplies uncommon Han glyphs missing from Fandol.
+      filter: file => !file.includes('/ipaex/') || file.endsWith('/ipaexm.ttf'),
+    });
   // Keep package metadata and licence/readme files; PDFs aren't runtime assets.
   await cp(path.join(unpacked, 'tlpkg'), path.join(dest, 'tlpkg'), {recursive: true});
   await cp(path.join(unpacked, 'doc'), path.join(dest, 'doc'), {
@@ -171,7 +181,7 @@ async function setupChinese(temp) {
   }
   await walk(path.join(dest, 'files'));
   await writeFile(path.join(dest, 'manifest.json'), JSON.stringify({name: 'chinese', version: 'texlive-2025-final', files, eager: []}));
-  console.log('CJK packages, Fandol and Nanum Myeongjo fonts ready.');
+  console.log('CJK packages, list/header packages and Fandol, Nanum Myeongjo, IPAex Mincho fonts ready.');
 }
 const temp = await mkdtemp(path.join(tmpdir(), 'rex-assets-'));
 try {

@@ -138,6 +138,7 @@ export function run(M, file) {
 export function liveDriver(preamble) {
   return `${preamble}\n\\newbox\\rexLiveBox\\newcount\\rexContinue\\rexContinue=1 \\edef\\rexCountNumber{\\number\\allocationnumber}\\newcatcodetable\\rexLiveCodes{\\makeatletter\\savecatcodetable\\rexLiveCodes}
 \\errorcontextlines=100
+\\AddToHook{begindocument/before}{\\directlua{dofile(kpse.find_file('rex-font-fallback.lua','lua')).install()}}
 \\begin{document}
 \\input{rex-live.tex}
 \\directlua{rex_live = dofile(kpse.find_file("rex-live.lua", "lua")) rex_live.init(\\number\\rexLiveBox, \\rexCountNumber, \\number\\rexLiveCodes)}

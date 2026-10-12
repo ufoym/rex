@@ -2,3 +2,4 @@
 # CTeX's Fandol fontset loads them directly by filename when needed.
 /texmf/fonts/opentype/public/fandol
 /texmf/fonts/truetype/public/nanum
+/texmf/fonts/truetype/public/ipaex

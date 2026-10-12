@@ -18,6 +18,7 @@ export const bundles = [
 export const texFiles = [
   "luaotfload-blacklist.cnf",
   "rex-json.lua",
+  "rex-font-fallback.lua",
   "rex-state.lua",
   "rex-nodes.lua",
   "rex-pictures.lua",

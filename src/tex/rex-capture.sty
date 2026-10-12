@@ -4,6 +4,7 @@
 \newcatcodetable\rexCaptureCodes
 {\makeatletter\savecatcodetable\rexCaptureCodes}
 \directlua{rex_capture=dofile(kpse.find_file('rex-capture.lua','lua'))}
+\AddToHook{begindocument/before}{\directlua{dofile(kpse.find_file('rex-font-fallback.lua','lua')).install()}}
 \AddToHook{begindocument/end}{\directlua{rex_capture.start(\number\rexCaptureCodes)}\rexInstallPictures}
 \AddToHook{para/begin}{\directlua{rex_capture.parbegin()}}
 \AddToHook{para/after}{\directlua{rex_capture.parend()}}
