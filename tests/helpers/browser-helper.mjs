@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { startServer } from "../../scripts/serve.mjs";
 
 export async function replaceSource(page, text) {
-  // CodeMirror owns its selection; use its select-all command rather than a DOM fill.
-  const mod = await page.evaluate(() => /Mac|iP(hone|ad|od)/.test(navigator.platform) ? "Meta" : "Control");
+  // Select through CodeMirror's state: mobile emulation can disagree with the
+  // host's navigator.platform about which modifier means select-all.
   await page.locator("#editor .cm-content").focus();
-  await page.keyboard.press(`${mod}+a`);
+  await page.evaluate(() => rex.editor.dispatch({selection: {anchor: 0, head: rex.editor.state.doc.length}}));
   await page.keyboard.insertText(text);
 }
 

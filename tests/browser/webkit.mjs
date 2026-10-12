@@ -10,6 +10,9 @@ try {
   await page.waitForFunction(() => window.rex?.session);
   // Reload a fresh project while recording the status shown during startup.
   await page.addInitScript(() => {
+    // Linux WebKit keeps the host platform while emulating an iPhone. Exercise
+    // that mismatch on macOS too, where platform would otherwise be MacIntel.
+    Object.defineProperty(navigator, "platform", {get: () => "Linux x86_64"});
     window.startupStatuses = [];
     new MutationObserver(() => {
       const status = document.querySelector("#status")?.textContent;
@@ -89,7 +92,10 @@ try {
   await page.evaluate(() => rex.session.warmed);
   assert.equal(await page.evaluate(() => rex.session.live.closed), false,
     "Offline warming closed the live engine: " + await page.locator("#log").textContent());
-  await replaceSource(page, await page.evaluate(() => rex.editor.state.doc.toString()).then(s => s.replace("Edit this paragraph", "Edit this offline paragraph")));
+  const offlineSource = await page.evaluate(() => rex.editor.state.doc.toString()).then(s => s.replace("Edit this paragraph", "Edit this offline paragraph"));
+  await replaceSource(page, offlineSource);
+  assert.equal(await page.evaluate(() => rex.editor.state.doc.toString()), offlineSource,
+    "Offline editing must replace the source without duplicating the document");
   await page.waitForFunction(() => window.rex?.session.lastTiming);
   await mkdir("artifacts/tests", {recursive: true});
   await page.screenshot({path: "artifacts/tests/webkit-mobile.png", fullPage: true});
