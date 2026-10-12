@@ -64,3 +64,12 @@ Read the [user guide](docs/guide.md), [project structure](docs/architecture.md),
 Rex ships selected TeX packages rather than a complete TeX Live installation. Unsupported live edits and changed vector drawings use full compilation. Projects, including dependencies and the active file, survive refresh in IndexedDB. Source / preview navigation operates at paragraph granularity. Broader package coverage, finer navigation and shared editing remain areas for development.
 
 Rex code is [MIT licensed](LICENSE). Bundled components retain their own licenses; see [third-party notices](THIRD_PARTY.md).
+
+## Thanks
+
+- [Clemens Lode](https://github.com/ClemensLode), for publishing [Real-Time LuaTeX: Recompiling Large Documents in 1 ms](https://www.tug.org/tug2026/preprints/lode-realtime.pdf) and the resident-engine approach to paragraph typesetting.
+- [HenryXiaoYang](https://github.com/HenryXiaoYang) and [realtime-tex](https://github.com/HenryXiaoYang/realtime-tex), for their work on incremental LuaLaTeX and the open implementation used in Rex's compiler benchmarks.
+- The [LuaTeX](https://www.luatex.org/), [LaTeX](https://www.latex-project.org/) and [TeX Live](https://www.tug.org/texlive/) developers and package and font maintainers, for the typesetting foundation.
+- [jmckalex](https://github.com/jmckalex) and [mp-tikz-wasm](https://github.com/jmckalex/mp-tikz-wasm), for the LuaTeX WebAssembly engine and TeX bundles that Rex runs in the browser.
+- [TeXlyre](https://github.com/TeXlyre/texlyre-busytex-build) and [BusyTeX](https://github.com/busytex/busytex), for the WebAssembly builds behind Rex's bibliography and indexing tools.
+- The maintainers of [PDF.js](https://github.com/mozilla/pdf.js), [pdf-lib](https://github.com/Hopding/pdf-lib), [opentype.js](https://github.com/opentypejs/opentype.js) and [FontTools](https://github.com/fonttools/fonttools), for PDF rendering, picture caching and font support.
