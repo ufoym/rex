@@ -10,7 +10,7 @@ Rex versus realtime-tex at the shared native compiler boundary and Rex versus it
 
 ## Overall speed summary
 
-The README aggregates the recorded median timings using an equally weighted geometric mean: `ratio = exp(mean(log(baseline median / Rex median)))`, then `% faster = (ratio − 1) * 100`. Each case uses the median of its three run-level medians from the [raw report](performance.json). Ratios are computed before rounding; this is a workload summary, not a pooled edit percentile or a statistical significance estimate.
+Recorded median timings are aggregated using an equally weighted geometric mean: `ratio = exp(mean(log(baseline median / Rex median)))`, then `% faster = (ratio − 1) * 100`. Each case uses the median of its three run-level medians from the [raw report](performance.json). Ratios are computed before rounding; this is a workload summary, not a pooled edit percentile or a statistical significance estimate. The separate VS Code preview measurements below do not enter the native realtime-tex aggregate.
 
 | Competitor | Included cases | Geometric mean ratio | Overall recorded timing |
 | --- | --- | ---: | --- |
@@ -158,9 +158,52 @@ npm run bench:texlode -- ../texlode-benchmark
 
 Default output is ignored `artifacts/benchmarks/texlode-workloads.json`. To replace the published raw report, append `--output=docs/texlode-workloads.json` and regenerate the displayed timings / ratios from it. Temporary compilation directories and owned processes are cleaned up; the public checkout is external and is not a runtime dependency.
 
+## realtime-tex VS Code preview measurements
+
+Measured on **2026-10-12** with [benchmarks/realtime-preview.mjs](../benchmarks/realtime-preview.mjs). This runs the real VS Code extension host, native Rust session and upstream preview renderer. It uses unmodified realtime-tex **0.0.2 at `210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1`**, the [VS Code plugin at `d7a34f18c9210fd22c2e018b868b20a0495dc3c0`](https://github.com/HenryXiaoYang/realtime-tex-vsc-plugin/tree/d7a34f18c9210fd22c2e018b868b20a0495dc3c0), VS Code **1.141.0 / Electron 43.7.7 / Chromium 150.0.7871.250**, and native LuaHBTeX **1.22.0 / TeX Live 2025** on Apple M4 / macOS 26.6.2. The engine uses `cargo build --release --locked`; the plugin uses its existing build dependencies. No compiler, renderer or scheduling algorithm is changed.
+
+**Primary timer:** starts when the extension receives a VS Code document-change event and stops immediately after the upstream renderer replaces the visible page's Canvas. It includes buffer synchronization, native `rtex serve`, paragraph compilation, resource checks, extension-host → webview messages, the renderer's existing `requestAnimationFrame` wait and page drawing. It excludes the synthetic editor-edit command before the document-change event, cold setup, pixel readback / validation, acknowledgement and screen compositing. Node and Chromium clocks are translated with `performance.timeOrigin` and calibrated every 20 edits using the shortest of five message exchanges. Clock samples and their half-round-trip uncertainty are retained; the largest observed calibration half-round-trip is 0.106 ms. This is calibration evidence, not a confidence interval for the latency.
+
+**Workload and sampling:** the same article / amsmath text corpus and first-paragraph fox → dog / cat edits as the Rex browser benchmark, at 10 / 100 / 300 pages. Each size has three fresh sessions, each with 20 warmups and 300 measured edits: **900 measured edits per size**. The first page is visible at 100% zoom, device pixel ratio 1, with a **794 × 1123 pixel Canvas**. Edits are sequential, with a 2 ms pause after the preceding pixel-verification acknowledgement, outside the primary timer. Readback therefore affects the interval between edits even though it is excluded from the primary timing. Frame scheduling, refresh rate, viewport, zoom and edit cadence can change these results. The default eligibility probe and background layout remain enabled. Auto-save is off; the test window uses an isolated profile and extension directory.
+
+Nearest-rank median / P95 are calculated within each run; each displayed number is the median of the three run-level statistics. Every chronological measured sample is retained and no outliers are removed. The secondary timer stays in the extension host and ends after pixel readback, FNV-1a hashing and the webview acknowledgement, avoiding cross-process clock subtraction.
+
+| Document | Edit → Canvas median, ms | Edit → Canvas P95, ms | Through verified readback / acknowledgement median, ms | Through verified readback / acknowledgement P95, ms |
+| --- | ---: | ---: | ---: | ---: |
+| 10 pages | 14.321 | 15.033 | 30.613 | 31.593 |
+| 100 pages | 14.361 | 15.142 | 30.583 | 31.506 |
+| 300 pages | 14.384 | 14.909 | 30.540 | 31.474 |
+
+The three Canvas-timing run medians range from **14.295–14.377 / 14.361–14.387 / 14.221–14.412 ms** at 10 / 100 / 300 pages. These are observed run ranges, not statistical confidence intervals. They describe the tested warm workflow rather than a document-size scaling law or universal product speed ranking.
+
+### Why this differs from Rex's browser timing
+
+The recorded realtime-tex native timing status is about **0.8 ms** in these sessions. The median per-edit difference between its Canvas timer and native status is about **13.5 ms**, combining buffer / process communication, resource checks, webview messaging, frame scheduling and drawing. These components have not been timed separately, so the remainder cannot all be assigned to any one stage. The upstream renderer waits for `requestAnimationFrame`, redraws the visible page onto a new Canvas and replaces the old Canvas. Rex's benchmark instead calls `Session.edit()` directly in headless Chromium, awaits its live worker and Canvas patch, and stops without waiting for an animation frame or screen presentation. Frame scheduling is therefore a plausible major contributor, not a measured stage-level attribution.
+
+Both tests use the same machine and source corpus, but the entry points, editor / process paths, drawing surfaces, browser versions and edit cadence differ. The realtime-tex driver waits for pixel hashing and acknowledgement before starting its 2 ms pause; Rex's driver immediately proceeds after the previous `Session.edit()` returns and clears the background full-pass timer. Although readback is excluded from the realtime-tex primary timer, it can affect the next edit's phase relative to animation frames. Rex's 1.2 ms ends before screen presentation too: a user may still wait for the next display refresh. Dividing 14.4 by 1.2 does not establish a 12× difference in compiler speed or user-visible latency.
+
+A comparable user-visible benchmark must start from each editor's applied document-change event, use equivalent visible viewports / zoom / pixel ratios, schedule edits independently of verification work and finish at the same verified screen-presentation boundary. Stage timers should separately capture compiler work, message transport, frame wait and drawing. Existing recorded values remain useful measurements of the named workflows; they are not substituted for that benchmark.
+
+**Validation:** all **2,880 warmup and measured draws** have strictly advancing source revisions, no PDF fallback and no missing-resource / approximate-rendering reason. Repeated dog / cat edits produce distinct, stable first-page pixel hashes. Outside each timed loop, the plugin requests independent full-document compilation of both edited texts and draws the settled page with no live overlays. Every live hash matches the corresponding full-compile Canvas reference. This checks the edited first page and its positions; it shares the upstream renderer with the reference and does not independently validate that renderer, all document pages, physical screen output or arbitrary packages.
+
+The [raw report](realtime-preview.json) preserves all nine runs, per-edit primary and secondary timings, native timing status, source revisions, pixel / reference hashes, Canvas dimensions, browser version, clock calibration records, upstream revisions, renderer source hash and the complete driver / instrumentation. The browser bundle adds observation messages and readback after drawing; the upstream source checkouts remain clean. Results with `--quick` are smoke checks and are not published.
+
+```sh
+git clone https://github.com/HenryXiaoYang/realtime-tex ../realtime-tex
+git -C ../realtime-tex checkout 210312967d9b90ecbe4c2ee502d78d5bb0d8c5e1
+cargo build --release --locked -p rtex-cli --manifest-path ../realtime-tex/Cargo.toml
+git clone https://github.com/HenryXiaoYang/realtime-tex-vsc-plugin ../realtime-tex-vsc-plugin
+git -C ../realtime-tex-vsc-plugin checkout d7a34f18c9210fd22c2e018b868b20a0495dc3c0
+npm ci --prefix ../realtime-tex-vsc-plugin
+node benchmarks/realtime-preview.mjs ../realtime-tex-vsc-plugin ../realtime-tex
+# Optional smoke check: append --quick. To publish a new report: --output=docs/realtime-preview.json
+```
+
+Native LuaLaTeX is required. The driver uses the plugin's `@vscode/test-electron` to download / reuse its pinned VS Code and launch an actual test window. This measurement was run on macOS; other platforms are not verified by this driver. The default output is ignored `artifacts/benchmarks/realtime-preview.json`. External checkouts and their dependency / VS Code caches are test dependencies, not Rex runtime dependencies.
+
 ## Product preview measurements
 
-Rex and TeXpresso use the same text corpus, first-paragraph edits, 20 warmups and 300 measured edits over three runs on Apple M4. Their timer endpoints differ, so these rows establish responsiveness in the tested configurations rather than relative speed. Texifier, TeXlyre, Overleaf and the complete realtime-tex editor pipeline have no same-corpus product measurement here.
+Rex, TeXpresso and the realtime-tex VS Code preview above use the same text corpus, first-paragraph edits, 20 warmups and 300 measured edits over three runs on Apple M4. Their editor / renderer paths, viewports, browser versions and timer endpoints differ, so these rows establish responsiveness in the tested configurations rather than relative product speed. Texifier, TeXlyre and Overleaf have no same-corpus product measurement here.
 
 Rex uses Chromium 134.0.6998.35, Node.js 24.6.0 and LuaTeX 1.21.0. Its `Session.edit` timer includes source processing, engine execution, worker communication, revision checks and Canvas submission; browser compositing is excluded. A warm full pass starts after `standby-ready`, with its preamble already loaded. Cold setup, preview and live-engine warmup take 1633.325 / 2235.370 / 3568.140 ms on this corpus; those values include substantially more work than a warm pass.
 
@@ -177,7 +220,7 @@ A broader product benchmark should match the rendering boundary and viewport, pi
 | Product / tested configuration | 10 pages | 100 pages | 300 pages | Timer endpoint / evidence gap |
 | --- | ---: | ---: | ---: | --- |
 | Rex, browser editor | 1.210 / 1.870 | 1.215 / 1.885 | 1.205 / 1.860 | `Session.edit` through Canvas submission; excludes browser compositing |
-| realtime-tex, complete editor pipeline | Not measured | Not measured | Not measured | Shared native compiler results above exclude Rust session and VS Code rendering |
+| realtime-tex, VS Code preview | 14.321 / 15.033 | 14.361 / 15.142 | 14.384 / 14.909 | Document-change callback through Rust session and animation-frame Canvas replacement; excludes readback and screen compositing |
 | TeXpresso, native software viewer | 2.982 / 4.608 | 3.005 / 4.777 | 3.055 / 4.600 | Through rendered-pixel readback, CRC32 verification and acknowledgement; excludes desktop compositing |
 | texlode | Not measured | Not measured | Not measured | Author-reported paragraph pipeline timings above; no same-corpus product run |
 | Texifier | Not measured | Not measured | Not measured | No installed app / same-corpus run; vendor describes visible-region typesetting and Metal rendering |
