@@ -16,7 +16,10 @@
           <div class="menu-panel">
             <button id="choose-files">File…<small>A .tex document, its assets, or a .rex project</small></button>
             <button id="choose-folder">Folder…<small>All project files, keeping subfolders</small></button>
-            <div class="recent-section"><strong>Recent</strong><div id="recent-projects"><small>No recent files</small></div></div>
+            <div class="recent-section">
+              <div class="recent-heading"><strong>Recent</strong><label class="locate-switch" title="Automatically open the last project and its active file when Rex starts"><span>Open last project on startup</span><input id="restore-project" type="checkbox" role="switch" /></label></div>
+              <div id="recent-projects"><small>No recent files</small></div>
+            </div>
           </div>
         </details>
         <input id="open" type="file" multiple hidden />
@@ -38,13 +41,10 @@
           <summary class="icon-button" aria-label="Help" title="Help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 3h.01"/></svg></summary>
           <div class="menu-panel help-panel">
             <strong>Start writing</strong>
-            <p>Edit the example or open your own files. The preview updates automatically.</p>
-            <p>Your project is saved in this browser. Open recent files from Open → Recent. Download a project to keep a backup or move to another device.</p>
-            <dl><dt>Find / replace</dt><dd>Ctrl/⌘ F</dd><dt>Indent / unindent</dt><dd>Tab / Shift Tab</dd><dt>Recompile</dt><dd>Ctrl/⌘ Enter</dd><dt>Locate paragraph</dt><dd>Ctrl/⌘ Alt J</dd></dl>
-            <p>The preview follows the editor cursor automatically. Double-click a paragraph in the preview to edit its source. Press Esc to clear a highlight until the cursor moves again.</p>
-            <button id="system-theme">Use device theme</button>
-            <label class="startup-setting"><input id="auto-locate" type="checkbox" checked /> Automatically locate paragraph</label>
-            <label class="startup-setting"><input id="restore-project" type="checkbox" /> Restore last project on startup</label>
+            <p>Edit or open a project. Preview updates as you type. Shortcuts work while editing source.</p>
+            <p>Saved in this browser. Reopen via Open → Recent; download a project for backup.</p>
+            <dl><dt>Find / replace</dt><dd>Ctrl/⌘ F</dd><dt>Indent / unindent</dt><dd>Tab / Shift Tab</dd><dt>Recompile</dt><dd>Ctrl/⌘ Enter</dd><dt>Locate paragraph once</dt><dd>Ctrl/⌘ Alt J</dd></dl>
+            <p>Follow cursor is on by default and keeps the current paragraph in view. Double-click the preview to jump to source. Esc clears the highlight.</p>
           </div>
         </details>
       </nav>
@@ -62,8 +62,7 @@
         <div class="pane-bar">
           <div class="preview-context"><span class="pane-label">Preview</span><span class="subtle auto-preview">Updates as you type</span></div>
           <div class="actions">
-            <button id="clear-location" class="action-button" hidden aria-label="Back to preview" title="Clear the highlight and return to your previous position (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 10-5 5 5 5M4 15h10a6 6 0 0 0 0-12h-2"/></svg><span class="back-label">Back to preview</span></button>
-            <button id="locate" class="action-button" title="Highlight the paragraph at the editor cursor (Ctrl/⌘ + Alt + J)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>Locate paragraph</button>
+            <label class="locate-switch" title="Keep the preview at the paragraph containing the editor cursor"><span>Follow cursor</span><input id="auto-locate" type="checkbox" role="switch" checked /></label>
           </div>
         </div>
         <div id="preview"><div class="welcome"><strong>Your preview will appear here</strong><p>Preparing the typesetting engine. You can start editing now.</p></div></div>
@@ -71,13 +70,7 @@
     </main>
     <footer>
       <span class="dot" aria-hidden="true"></span><span id="status" role="status">Preparing…</span>
-      <details class="menu" id="tools-menu">
-        <summary class="action-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3m4 0h9M4 17h9m4 0h3"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg><span>Tools</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></summary>
-        <div class="menu-panel">
-          <button id="toggle-log" aria-expanded="false" aria-controls="log">Show compilation log<small>Details when a document fails to compile</small></button>
-          <div class="diagnostics"><strong>Performance check</strong><p>Measures 300 paragraph compilations on this device. Editing pauses while it runs.</p><button id="benchmark">Run performance check</button><output id="benchmark-result" role="status"></output></div>
-        </div>
-      </details>
+      <button id="toggle-log" aria-expanded="false" aria-controls="log">Show log</button>
     </footer>
     <pre id="log" hidden aria-label="Compilation log"></pre>
     <script>

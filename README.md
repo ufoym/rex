@@ -34,13 +34,13 @@ npm run setup
 npm run dev
 ```
 
-Open [localhost:8080](http://127.0.0.1:8080). Rex shows the built-in document by default; reopen saved projects from **Open → Recent**, or enable **Help → Restore last project on startup**. Import a project with **Open → File…** or try [examples/](examples/). **Open → Folder…** preserves nested paths; the file selector edits imported source files. **Download → Project (.rex)** saves a portable file containing every source and asset. The preview updates as you type; use **Recompile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
+Open [localhost:8080](http://127.0.0.1:8080). Rex shows the built-in document by default; reopen saved projects from **Open → Recent**, or enable **Open → Recent → Open last project on startup**. Import a project with **Open → File…** or try [examples/](examples/). **Open → Folder…** preserves nested paths; the file selector edits imported source files. **Download → Project (.rex)** saves a portable file containing every source and asset. The preview updates as you type; use **Recompile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
 
 To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
 
 You can also run `npm run build` and open `dist/index.html` directly in a browser, without a local server or network connection. Keep the entire `dist/` folder together. Local file mode packages the compiler and its resources and recompiles after typing pauses; HTTP / HTTPS hosting retains the faster persistent paragraph compiler.
 
-Use the sun / moon icon to switch between light and dark themes. The choice survives refresh; **Help → Use device theme** restores automatic switching. PDF pages retain their original colours in every theme.
+Use the sun / moon icon to switch between light and dark themes. The choice survives refresh; before a theme is selected, Rex follows the device theme. PDF pages retain their original colours in every theme.
 
 For GitHub Pages, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions** in your repository. The [Pages workflow](.github/workflows/pages.yml) builds and verifies the site, then publishes `dist/` on every push to `main`. Once deployment succeeds, open the site URL shown in **Settings → Pages**. You can also run **Deploy GitHub Pages** manually from the Actions tab on `main`.
 

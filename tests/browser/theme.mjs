@@ -7,7 +7,6 @@ for (const browserType of [chromium, webkit]) {
   const {page, close} = await openBrowser({browserType, basePath: "/rex/",
     viewport: {width: 1440, height: 1000}, contextOptions: {colorScheme: "dark"}});
   const theme = page.locator("#theme");
-  const deviceTheme = async () => {await page.locator("#help-menu > summary").click(); await page.click("#system-theme");};
   const current = () => page.evaluate(() => document.documentElement.dataset.theme);
   try {
     assert.equal(await current(), "dark");
@@ -35,10 +34,9 @@ for (const browserType of [chromium, webkit]) {
     assert.equal(await current(), "light");
     await page.reload();
     assert.equal(await current(), "light");
-    await deviceTheme();
-    assert.equal(await current(), "dark");
     await page.emulateMedia({colorScheme: "light"});
-    await page.waitForFunction(() => document.documentElement.dataset.theme === "light");
+    assert.equal(await current(), "light", "Saved preference must override device theme");
+    assert.equal(await page.locator("#system-theme").count(), 0);
 
     // Exercise the actual document preview, then verify switching leaves its pixels alone.
     await page.waitForFunction(() => window.rex?.renderer.views.get(1)?.ready);

@@ -61,7 +61,7 @@ try {
     const saved = await loadProject();
     return saved?.files[saved.main]?.includes("编辑这段文字");
   });
-  await page.locator("#help-menu > summary").click();
+  await page.locator("#open-menu > summary").click();
   await page.locator("#restore-project").check();
   await page.context().setOffline(true);
   await page.reload();

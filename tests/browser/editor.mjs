@@ -221,7 +221,8 @@ await page.waitForFunction(() => rex.session.lastTiming && rex.renderer.patches.
 assert.equal(await page.evaluate(() => rex.session.source), projectMain);
 assert.ok(await page.evaluate(() => [...rex.renderer.patches.values()].some(p => p.unit.file.endsWith("/chapters/body.tex"))), "Child file did not update live");
 await page.evaluate(() => {clearTimeout(rex.session.timer); rex.editor.dispatch({selection: {anchor: 2}});});
-await page.click("#locate");
+await page.locator(".cm-content").focus();
+await page.keyboard.press(`${process.platform === "darwin" ? "Meta" : "Control"}+Alt+j`);
 assert.equal(await page.locator(".source-marker").count(), 1);
 await page.selectOption("#filename", "main.tex");
 const click = await page.evaluate(() => {
@@ -237,7 +238,7 @@ await page.locator("#download-menu > summary").click();
 const download = page.waitForEvent("download"); await page.click("#save-project");
 const exported = decodeProject(new Uint8Array(await fs.readFile(await (await download).path())));
 assert.equal(exported.files["chapters/body.tex"], editedChild); assert.deepEqual(exported.files["images/pixel.png"], new Uint8Array(png));
-await page.locator("#help-menu > summary").click();
+await page.locator("#open-menu > summary").click();
 await page.locator("#restore-project").check();
 await page.reload();
 await page.waitForFunction(() => Boolean(window.rex?.session.warmed), {}, {timeout: 120000, polling:100}); await page.evaluate(() => rex.session.warmed);

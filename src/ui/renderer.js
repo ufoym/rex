@@ -389,8 +389,10 @@ export class Renderer {
     if (!view) return;
     this.container.querySelector(".source-marker")?.remove();
     const marker = document.createElement("div"); marker.className = "source-marker";
-    Object.assign(marker.style, {left: (place.x - 65536) / SP + "px", top: (place.y - place.h - 65536) / SP + "px",
-      width: (place.w + 131072) / SP + "px", height: (place.h + place.d + 131072) / SP + "px"});
-    view.host.append(marker); marker.scrollIntoView({block: "center"});
+    const padding = 4 * SP;
+    Object.assign(marker.style, {left: (place.x - padding) / SP + "px", top: (place.y - place.h - padding) / SP + "px",
+      width: (place.w + 2 * padding) / SP + "px", height: (place.h + place.d + 2 * padding) / SP + "px"});
+    view.host.append(marker);
+    marker.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
   }
 }

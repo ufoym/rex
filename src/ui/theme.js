@@ -28,6 +28,5 @@
     apply();
     document.querySelector("#theme").addEventListener("click", () =>
       set(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
-    document.querySelector("#system-theme").addEventListener("click", () => set("system"));
   });
 })();

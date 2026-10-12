@@ -58,8 +58,6 @@ async function init() {
   window.rex = { session, renderer, editor };
   if (local) {
     $(".auto-preview").textContent = "Recompiles after typing pauses";
-    $("#benchmark").disabled = true;
-    $("#benchmark-result").textContent = "Paragraph performance checks are available when Rex is hosted over HTTP or HTTPS.";
   }
   async function persist() {
     // Merely viewing the starter must not replace the last saved project.
@@ -130,7 +128,6 @@ async function init() {
         button.textContent = value.name || value.main;
         detail.textContent = `${value.main} · ${value.updated ? new Date(value.updated).toLocaleString() : "Saved in this browser"}`;
         button.append(detail);
-        button.disabled = $("#benchmark").disabled && !local;
         button.onclick = async () => {
           try {
             await persist();
@@ -154,7 +151,7 @@ async function init() {
   $("#search").onclick = source.search;
   $("#toggle-log").onclick = () => {
     log.hidden = !log.hidden;
-    $("#toggle-log").firstChild.textContent = log.hidden ? "Show compilation log" : "Hide compilation log";
+    $("#toggle-log").textContent = log.hidden ? "Show log" : "Hide log";
     $("#toggle-log").setAttribute("aria-expanded", String(!log.hidden));
   };
   $("#choose-files").onclick = () => $("#open").click();
@@ -168,7 +165,7 @@ async function init() {
   });
   document.addEventListener("click", event => {
     for (const menu of menus) {
-      if (!menu.contains(event.target) || (event.target.closest("button") && event.target.id !== "benchmark")) menu.open = false;
+      if (!menu.contains(event.target) || event.target.closest("button")) menu.open = false;
     }
   });
   document.addEventListener("keydown", event => {
@@ -216,17 +213,19 @@ async function init() {
     followingCursor = false;
     locatedUnit = null;
     renderer.container.querySelector(".source-marker")?.remove();
-    if (restore && previewPosition) renderer.container.scrollTo(previewPosition);
+    if (restore && previewPosition) {
+      const position = {...previewPosition, behavior: "instant"};
+      renderer.container.scrollTo(position);
+      // A queued smooth-scroll frame can arrive after the immediate restore.
+      requestAnimationFrame(() => { if (!locatedUnit) renderer.container.scrollTo(position); });
+    }
     previewPosition = null;
-    $("#clear-location").hidden = true;
   }
   function highlight(unit) {
     previewPosition ||= {top: renderer.container.scrollTop, left: renderer.container.scrollLeft};
     renderer.locate(unit);
     locatedUnit = unit;
-    $("#clear-location").hidden = !renderer.container.querySelector(".source-marker");
   }
-  $("#clear-location").onclick = () => clearLocation(true);
   function scheduleLocation(resume = false) {
     if (!autoLocate.checked) return;
     if (resume) followingCursor = true;
@@ -257,7 +256,6 @@ async function init() {
     if (automatic && unit === locatedUnit && renderer.container.querySelector(".source-marker")) return;
     highlight(unit);
   }
-  $("#locate").onclick = () => locate();
   renderer.onSource = unit => {
     const file = unit.file?.replace(/^\/work\//, "");
     const mapping = session.layoutFiles?.[file];
@@ -275,48 +273,6 @@ async function init() {
     const cursor = editor.state.selection.main.head, line = editor.state.doc.lineAt(cursor);
     $("#position").textContent = `Ln ${line.number}, Col ${cursor - line.from + 1}`;
   }
-  $("#benchmark").onclick = async () => {
-    const button = $("#benchmark");
-    button.disabled = true;
-    source.editable(false);
-    const controls = [...document.querySelectorAll("#choose-files, #choose-folder, #recent-projects button, #filename, #compile")];
-    for (const control of controls) control.disabled = true;
-    $("#benchmark-result").textContent = "Running…";
-    clearTimeout(session.timer);
-    try {
-      const live = session.live,
-        unit = session.units?.find(
-          (u) => u?.kind === "par" && u.placements?.length,
-        ),
-        index = session.units?.indexOf(unit);
-      if (!unit || !live || session.busy || !session.warmed) throw Error("Wait for compilation to finish, then try again");
-      await session.warmed;
-      const source = session.layoutSpans[index].text;
-      for (let i = 0; i < 20; i++) await live.compile(unit, source);
-      const values = [];
-      for (let i = 0; i < 300; i++) {
-        const r = await live.compile(unit, source + " " + (i % 2 ? "a" : "b"));
-        values.push(r.ms);
-      }
-      values.sort((a, b) => a - b);
-      window.rex.benchmark = {
-        samples: 300,
-        median: values[150],
-        p95: values[285],
-        withinFrame: values[285] < 16.67,
-      };
-      status.textContent = `300 paragraph compilations · median ${values[150].toFixed(2)} ms · P95 ${values[285].toFixed(2)} ms`;
-      $("#benchmark-result").textContent = `Typical: ${values[150].toFixed(2)} ms · 95% under ${values[285].toFixed(2)} ms. ${values[285] < 16.67 ? "Within a 60 Hz frame budget." : "Slower than a 60 Hz frame."}`;
-    } catch (e) {
-      status.textContent = String(e);
-      $("#benchmark-result").textContent = String(e);
-    } finally {
-      button.disabled = false;
-      source.editable(true);
-      for (const control of [...controls, ...document.querySelectorAll("#recent-projects button")]) control.disabled = false;
-      if (session.layout?.revision !== session.revision) session.schedule();
-    }
-  };
   if (!local && "serviceWorker" in navigator)
     navigator.serviceWorker.register("./sw.js").catch(addLog);
 }

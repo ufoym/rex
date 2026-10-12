@@ -19,11 +19,28 @@ const ready = () => page.waitForFunction(() => rex.session.layout?.revision === 
 try {
   await page.waitForFunction(() => window.rex?.editor);
   assert.equal(await doc(), starterDocument);
-  assert.equal(await page.locator("#benchmark").isVisible(), false);
+  await page.evaluate(() => {
+    rex.shortcutCompilations = 0;
+    rex.originalFull = rex.session.full;
+    rex.session.full = () => { rex.shortcutCompilations++; };
+  });
+  await page.locator(".cm-content").focus();
+  await page.keyboard.press(`${mod}+Enter`);
+  assert.equal(await page.evaluate(() => rex.shortcutCompilations), 1, "Recompile shortcut must reach the full compiler");
+  assert.equal(await doc(), starterDocument, "Recompile shortcut must not insert a blank line");
+  await page.evaluate(() => { rex.session.full = rex.originalFull; delete rex.originalFull; });
+  assert.equal(await page.locator("#benchmark, #benchmark-result, #system-theme").count(), 0);
+  assert.equal(await page.locator("#tools-menu").count(), 0);
+  assert.equal(await page.locator("#help-menu #toggle-log").count(), 0);
+  assert.ok(await page.locator("footer #toggle-log").isVisible());
+  assert.equal(await page.locator("#toggle-log").textContent(), "Show log");
+  assert.equal(await page.locator("#help-menu #restore-project").count(), 0);
+  assert.equal(await page.locator("#open-menu .recent-section #restore-project").count(), 1);
   await page.locator("#open-menu > summary").click();
   assert.match(await page.locator("#choose-files").textContent(), /\.rex/);
   assert.match(await page.locator("#choose-files").textContent(), /^File…/);
   assert.equal(await page.locator("#restore-project").isChecked(), false);
+  assert.ok(await page.getByRole("switch", {name: "Open last project on startup", exact: true}).isVisible());
   assert.match(await page.locator("#choose-folder").textContent(), /subfolders/);
   await page.keyboard.press("Escape");
   assert.equal(await page.locator("#open-menu").getAttribute("open"), null);
@@ -35,13 +52,22 @@ try {
   assert.ok(await page.locator(".cm-lineNumbers").count());
   assert.ok(await page.locator(".cm-content span").count(), "LaTeX syntax has no highlighting");
   assert.equal(await page.locator("#auto-locate").isChecked(), true);
+  assert.equal(await page.getByRole("switch", {name: "Follow cursor", exact: true}).isVisible(), true);
+  assert.equal(await page.locator("#clear-location").count(), 0);
+  assert.equal(await page.locator("#help-menu #auto-locate").count(), 0);
   const navigationRevision = await page.evaluate(() => {
     rex.navigationCalls = 0;
     rex.navigationCompilations = 0;
     const full = rex.session.full.bind(rex.session);
     rex.session.full = () => { rex.navigationCompilations++; return full(); };
     const locate = rex.renderer.locate.bind(rex.renderer);
-    rex.renderer.locate = unit => { rex.navigationCalls++; return locate(unit); };
+    rex.renderer.locate = unit => {
+      rex.navigationCalls++;
+      rex.navigationStartScroll = rex.renderer.container.scrollTop;
+      const result = locate(unit);
+      rex.navigationImmediateScroll = rex.renderer.container.scrollTop;
+      return result;
+    };
     rex.editor.dispatch({selection: {anchor: rex.editor.state.doc.toString().indexOf("Alpha")}});
     return rex.session.revision;
   });
@@ -68,10 +94,9 @@ try {
   await page.keyboard.press("Escape");
   await page.waitForTimeout(250);
   assert.equal(await page.locator(".source-marker").count(), 0, "Escape must cancel pending navigation");
-  await page.locator("#help-menu > summary").click();
   await page.locator("#auto-locate").uncheck();
-  await page.keyboard.press("Escape");
-  await page.click("#search");
+  await page.locator(".cm-content").focus();
+  await page.keyboard.press(`${mod}+f`);
   assert.ok(await page.getByRole("textbox", {name: "Find", exact: true}).isVisible());
   await page.getByRole("textbox", {name: "Find", exact: true}).pressSequentially("Alpha");
   await page.keyboard.press("Enter");
@@ -103,53 +128,87 @@ try {
   });
   await page.waitForTimeout(250);
   assert.equal(await page.locator(".source-marker").count(), 0, "Disabled automatic navigation must leave the preview alone");
-  await page.click("#locate");
+  await page.getByRole("switch", {name: "Follow cursor", exact: true}).check();
+  await page.waitForFunction(() => document.querySelector(".source-marker"));
   assert.equal(await page.locator(".source-marker").count(), 1);
-  assert.ok(await page.locator("#clear-location").isVisible());
-  assert.ok(await page.locator("#preview").evaluate(el => el.scrollTop > 0));
-  await page.click("#clear-location");
+  assert.equal(await page.evaluate(() => rex.navigationImmediateScroll), 0, "Smooth navigation must not jump immediately");
+  await page.waitForFunction(() => {
+    const preview = document.querySelector("#preview").getBoundingClientRect();
+    const marker = document.querySelector(".source-marker").getBoundingClientRect();
+    return Math.abs((marker.top + marker.bottom - preview.top - preview.bottom) / 2) < 1;
+  });
+  await page.keyboard.press("Escape");
   assert.equal(await page.locator(".source-marker").count(), 0);
   assert.equal(await page.locator("#preview").evaluate(el => el.scrollTop), 0);
+  await page.locator("#auto-locate").uncheck();
   await page.locator(".cm-content").focus();
   await page.keyboard.press(`${mod}+Alt+j`);
   assert.equal(await page.locator(".source-marker").count(), 1);
+  await page.waitForFunction(() => document.querySelector("#preview").scrollTop > 0);
   await page.keyboard.press("Escape");
   assert.equal(await page.locator(".source-marker").count(), 0);
+  await page.waitForTimeout(250);
+  assert.equal(await page.locator("#preview").evaluate(el => el.scrollTop), 0, "Escape must cancel smooth navigation and restore the preview");
+  await page.emulateMedia({reducedMotion: "reduce"});
+  await page.keyboard.press(`${mod}+Alt+j`);
+  assert.ok(await page.evaluate(() => rex.navigationImmediateScroll > rex.navigationStartScroll), "Reduced motion must navigate immediately");
+  await page.keyboard.press("Escape");
+  await page.emulateMedia({reducedMotion: "no-preference"});
   await page.locator("#download-menu > summary").click();
   const download = page.waitForEvent("download");
   await page.click("#save-project");
   const archive = decodeProject(new Uint8Array(await readFile(await (await download).path())));
   assert.equal(archive.files["main.tex"], edited);
   assert.equal(archive.active, "chapters/body.tex");
-  await page.locator("#tools-menu > summary").click();
-  await page.click("#benchmark");
-  await page.waitForFunction(() => !document.querySelector("#benchmark").disabled);
-  assert.equal(await page.evaluate(() => rex.benchmark.samples), 300);
-  assert.match(await page.locator("#benchmark-result").textContent(), /Typical.*95%/);
-  assert.equal(await page.locator(".cm-content").getAttribute("contenteditable"), "true");
   await page.click("#toggle-log");
   assert.equal(await page.locator("#toggle-log").getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator("#toggle-log").textContent(), "Hide log");
   assert.ok(await page.locator("#log").isVisible());
-  await page.locator("#tools-menu > summary").click();
-  await page.click("#toggle-log");
+  await page.locator("#toggle-log").focus();
+  await page.keyboard.press("Space");
+  assert.equal(await page.locator("#toggle-log").getAttribute("aria-expanded"), "false");
+  assert.equal(await page.locator("#toggle-log").textContent(), "Show log");
+  assert.equal(await page.locator("#log").isVisible(), false);
   await page.selectOption("#filename", "main.tex");
   await mkdir("artifacts/tests", {recursive: true});
   await page.screenshot({path: "artifacts/tests/workspace-light.png"});
   await page.click("#theme");
   await page.screenshot({path: "artifacts/tests/workspace-dark.png"});
   for (const width of [1440, 768, 390, 320]) {
-    await page.setViewportSize({width, height: 844});
+    await page.setViewportSize({width, height: width === 320 ? 480 : 844});
     await page.waitForFunction(() => {
       const preview = document.querySelector("#preview");
       return preview.scrollWidth <= preview.clientWidth + 1;
     });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    assert.ok(await page.locator("footer #toggle-log").evaluate(el => {
+      const bounds = el.getBoundingClientRect();
+      return bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight;
+    }), "Log control must remain visible in the status bar");
     assert.ok(await page.locator("#choose-folder").count(), "Folder import must remain available on mobile");
     await page.locator("#open-menu > summary").click();
     assert.ok(await page.locator("#open-menu .menu-panel").evaluate(el => {
       const bounds = el.getBoundingClientRect();
       return bounds.left >= 0 && bounds.right <= innerWidth;
     }), "Open and Recent must fit within the viewport");
+    assert.ok(await page.locator("#restore-project").evaluate(el => {
+      const bounds = el.getBoundingClientRect();
+      return bounds.top >= 0 && bounds.bottom <= innerHeight;
+    }), "Restore preference must remain reachable in Recent");
+    assert.ok(await page.locator(".recent-heading").evaluate(el => {
+      const heading = el.querySelector("strong").getBoundingClientRect();
+      const toggle = el.querySelector("input").getBoundingClientRect();
+      const label = el.querySelector("label").getBoundingClientRect();
+      const row = el.getBoundingClientRect();
+      return toggle.left > heading.right && Math.abs((heading.top + heading.bottom - toggle.top - toggle.bottom) / 2) < 1 &&
+        label.right <= row.right && label.left > heading.right;
+    }), "Startup switch must sit to the right of Recent without overflowing");
+    await page.keyboard.press("Escape");
+    await page.locator("#help-menu > summary").click();
+    assert.ok(await page.locator("#help-menu .menu-panel").evaluate(el => {
+      const bounds = el.getBoundingClientRect();
+      return bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight;
+    }), "Help must fit within the viewport");
     await page.keyboard.press("Escape");
   }
   await page.setViewportSize({width: 390, height: 844});
@@ -170,10 +229,14 @@ try {
   await page.waitForFunction(edited => rex.editor.state.doc.toString() === edited, edited);
   await ready();
   assert.equal(await doc(), edited);
-  await page.locator("#help-menu > summary").click();
+  await page.locator("#open-menu > summary").click();
   await page.screenshot({path: "artifacts/tests/workspace-startup-settings-mobile.png"});
   await page.locator("#restore-project").check();
-  await page.locator("#auto-locate").check();
+  assert.equal(await page.locator("#open-menu").evaluate(el => el.open), true, "Changing the preference must keep Recent open");
+  await page.keyboard.press("Escape");
+  await page.locator("#auto-locate").focus();
+  await page.keyboard.press("Space");
+  assert.equal(await page.locator("#auto-locate").isChecked(), true);
   await page.reload();
   await ready();
   assert.equal(await doc(), edited);
@@ -222,5 +285,5 @@ try {
   assert.equal(storage.current, "project-10");
   assert.equal(storage.source, "Updated unfinished draft");
   assert.deepEqual(storage.image, [0, 128, 255]);
-  console.log("Workspace menus, highlighted editor, search, indent, file undo, navigation restore, downloads, diagnostics, autosave and responsive pages passed.");
+  console.log("Workspace menus, highlighted editor, shortcuts, file undo, navigation restore, downloads, startup preference, autosave and responsive pages passed.");
 } finally { await close(); }
