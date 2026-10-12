@@ -37,18 +37,22 @@ async function init() {
     addLog,
   );
   let active, saveTimer, previewPosition, savedId, savedName;
+  let locateTimer, followingCursor = false, locatedUnit;
+  const autoLocate = $("#auto-locate");
+  try { autoLocate.checked = localStorage.getItem("rex-auto-locate") !== "false"; }
+  catch (error) { addLog(String(error)); }
   const fileStates = new Map();
   const source = sourceEditor($("#editor"), {
     onChange: text => {
       savedId ||= crypto.randomUUID();
       session.edit(text, active);
       updateExport();
-      clearLocation();
+      if (!autoLocate.checked || session.contextDirty) clearLocation();
       $("#storage-status").textContent = "Saving…";
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {saveTimer = null; persist();}, 500);
     },
-    onSelection: () => position(), onCompile: () => session.full(), onLocate: () => locate(),
+    onSelection: () => { position(); scheduleLocation(true); }, onCompile: () => session.full(), onLocate: () => locate(),
   });
   const editor = source.view;
   window.rex = { session, renderer, editor };
@@ -72,7 +76,8 @@ async function init() {
   }
   function updateExport() {
     $("#export").disabled = !session.layout?.pdf || session.layout.revision !== session.revision || session.busy;
-    if (previewPosition && !renderer.container.querySelector(".source-marker")) clearLocation();
+    if (previewPosition && !renderer.container.querySelector(".source-marker") && !followingCursor) clearLocation();
+    scheduleLocation();
   }
   function selectFile(name) {
     if (active) fileStates.set(active, editor.state);
@@ -82,6 +87,7 @@ async function init() {
     $("#filename").value = name;
     clearLocation();
     position();
+    scheduleLocation(true);
   }
   function openProject(value) {
     clearTimeout(saveTimer);
@@ -206,6 +212,9 @@ async function init() {
   };
   $("#open-folder").onchange = $("#open").onchange;
   function clearLocation(restore = false) {
+    clearTimeout(locateTimer);
+    followingCursor = false;
+    locatedUnit = null;
     renderer.container.querySelector(".source-marker")?.remove();
     if (restore && previewPosition) renderer.container.scrollTo(previewPosition);
     previewPosition = null;
@@ -214,19 +223,41 @@ async function init() {
   function highlight(unit) {
     previewPosition ||= {top: renderer.container.scrollTop, left: renderer.container.scrollLeft};
     renderer.locate(unit);
+    locatedUnit = unit;
     $("#clear-location").hidden = !renderer.container.querySelector(".source-marker");
   }
   $("#clear-location").onclick = () => clearLocation(true);
-  const locate = () => {
+  function scheduleLocation(resume = false) {
+    if (!autoLocate.checked) return;
+    if (resume) followingCursor = true;
+    if (!followingCursor) return;
+    clearTimeout(locateTimer);
+    locateTimer = setTimeout(() => locate(true), 120);
+  }
+  autoLocate.onchange = () => {
+    try { localStorage.setItem("rex-auto-locate", String(autoLocate.checked)); }
+    catch (error) { addLog(String(error)); status.textContent = "Navigation preference could not be saved"; }
+    if (autoLocate.checked) scheduleLocation(true);
+    else clearLocation();
+  };
+  function locate(automatic = false) {
+    clearTimeout(locateTimer);
     const mapping = session.layoutFiles?.[active], spans = session.currentSpans.get(active);
     const cursor = editor.state.selection.main.head;
     const index = spans?.findIndex(span => cursor >= span.start && cursor <= span.end);
     const unit = mapping?.blocks[index]?.[0]?.unit;
-    if (session.contextDirty) { status.textContent = "Compile to refresh source locations"; return; }
-    if (!unit) { status.textContent = "No paragraph location available here"; return; }
+    const stale = session.contextDirty || renderer.capture !== session.layout?.capture;
+    if (stale || !unit?.placements?.length) {
+      if (automatic) {
+        clearLocation();
+        followingCursor = true; // Retry when the next layout is ready, without replacing compilation status.
+      } else status.textContent = stale ? "Compile to refresh source locations" : "No paragraph location available here";
+      return;
+    }
+    if (automatic && unit === locatedUnit && renderer.container.querySelector(".source-marker")) return;
     highlight(unit);
-  };
-  $("#locate").onclick = locate;
+  }
+  $("#locate").onclick = () => locate();
   renderer.onSource = unit => {
     const file = unit.file?.replace(/^\/work\//, "");
     const mapping = session.layoutFiles?.[file];
@@ -237,6 +268,7 @@ async function init() {
     selectFile(file);
     editor.dispatch({selection: {anchor: span.start, head: span.end}, scrollIntoView: true});
     editor.focus();
+    clearTimeout(locateTimer);
     position(); highlight(unit); persist();
   };
   function position() {
