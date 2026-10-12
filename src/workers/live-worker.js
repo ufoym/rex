@@ -1,11 +1,17 @@
 import { resources, restoreResources, engine, run, liveDriver } from "../compiler/runtime.js";
 import { decodeDisplayList } from "../protocol/display-list.js";
 import { wireDevices, decodeFrame } from "../protocol/transport.js";
+import { InputPending } from "../compiler/async-runtime.js";
 let res;
+let wake;
+const requests = [];
 const sent = new Set();
 onmessage = async ({ data }) => {
+  if (data.type === "request") { requests.push(data.bytes); wake?.(); return; }
   try {
     res = data.resources ? restoreResources(data.resources) : await resources();
+    const local = !!globalThis.rexLocal;
+    const wasmModule = local ? await WebAssembly.compile(globalThis.rexLocal.files["vendor/engine/luatex-async.wasm"]) : res.wasmModule;
     const files = { ...data.files, ...data.aux, "live.tex": liveDriver(data.preamble) };
     if (data.aux?.["capture.aux"]) files["live.aux"] = data.aux["capture.aux"];
     if (data.aux?.["capture.bbl"]) files["live.bbl"] = data.aux["capture.bbl"];
@@ -14,9 +20,14 @@ onmessage = async ({ data }) => {
       res,
       files,
       (line) => postMessage({ type: "log", line }),
-      { REX_REQ: "/rex-input", REX_RESP: "/rex-output" },
+      { REX_REQ: "/rex-input", REX_RESP: "/rex-output", ...(local ? {REX_ASYNC_INPUT: "1"} : {}) },
+      wasmModule,
     );
-    wireDevices(M, data.mailbox, (frame) => {
+    const input = data.mailbox || (() => {
+      if (requests.length) return requests.shift();
+      throw new InputPending(new Promise(resolve => { wake = resolve; }));
+    });
+    wireDevices(M, input, (frame) => {
       const { header, binary } = decodeFrame(frame);
       // Fonts are collected while the runtime is alive. Font IDs vary per engine.
       const fonts = {}, assets = {};
@@ -39,7 +50,7 @@ onmessage = async ({ data }) => {
       );
     });
     // All context requests are sent through stdin by the host after the ready frame.
-    run(M, "live.tex");
+    await run(M, "live.tex");
     postMessage({ type: "stopped" });
   } catch (e) {
     postMessage({ type: "failure", message: String(e) });

@@ -14,6 +14,7 @@
 - **BibLaTeX 3.22** and **logreq 1.0**, LPPL 1.3c. Pinned BibLaTeX source: https://github.com/plk/biblatex/tree/v3.22 ; logreq: https://ctan.org/pkg/logreq . Setup verifies both archives, substitutes BibLaTeX's release-version placeholders and preserves source headers and README licenses. Standard BibTeX `.bst` files come from https://ctan.org/pkg/bibtex and retain their source-header terms.
 - **CodeMirror 6**, MIT, including its LaTeX stream mode, Lezer, DOM helpers and keyboard utilities. https://codemirror.net/ . Exact dependency versions are pinned in `package-lock.json`; `scripts/editor-vendor.mjs` bundles the editor for local and offline use and preserves component versions and licences in `vendor/codemirror-LICENSE.txt`.
 - **esbuild 0.28.2**, MIT; used at build time only to bundle CodeMirror. https://github.com/evanw/esbuild .
+- **Binaryen 132.0.0**, Apache-2.0; used at build time only to apply Asyncify to the local-file LuaTeX paragraph engine. https://github.com/WebAssembly/binaryen . `scripts/async-wasm.mjs` reproduces the transform from the pinned LuaTeX module; the transformed module retains LuaTeX's GPL-2.0-or-later licence.
 - **FontTools 4.60.1**, MIT; used at build time only. https://github.com/fonttools/fonttools .
 
 Rex application code is under the root MIT license. Distributors must preserve the separate licenses of these components and make GPL/AGPL-covered corresponding source available as required by the relevant license; the upstream versioned source and build links above identify this build's provenance.

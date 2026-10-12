@@ -21,8 +21,15 @@ export function send(buffer, bytes) {
   Atomics.notify(state, 0);
 }
 export function wireDevices(M, buffer, onFrame) {
-  const FS = M.FS,
-    state = new Int32Array(buffer, 0, 2);
+  const FS = M.FS;
+  const state = typeof buffer === "function" ? null : new Int32Array(buffer, 0, 2);
+  const readChunk = typeof buffer === "function" ? buffer : () => {
+    while (Atomics.load(state, 0) === 0) Atomics.wait(state, 0, 0);
+    const bytes = new Uint8Array(buffer, 8, Atomics.load(state, 1)).slice();
+    Atomics.store(state, 0, 0);
+    Atomics.notify(state, 0);
+    return bytes;
+  };
   let chunk = new Uint8Array(),
     offset = 0;
   const lengthBytes = new Uint8Array(4), lengthView = new DataView(lengthBytes.buffer);
@@ -33,11 +40,8 @@ export function wireDevices(M, buffer, onFrame) {
     },
     read(_s, dst, start, n) {
       if (offset === chunk.length) {
-        while (Atomics.load(state, 0) === 0) Atomics.wait(state, 0, 0);
-        chunk = new Uint8Array(buffer, 8, Atomics.load(state, 1)).slice();
+        chunk = readChunk();
         offset = 0;
-        Atomics.store(state, 0, 0);
-        Atomics.notify(state, 0);
       }
       const count = Math.min(n, chunk.length - offset);
       dst.set(chunk.subarray(offset, offset + count), start);

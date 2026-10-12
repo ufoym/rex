@@ -2,7 +2,7 @@
 
 Rex serves hosted application code as native ES modules. The CodeMirror dependency is bundled locally with esbuild; setup, build and the development server generate `vendor/codemirror.mjs` and its component licences. Directory names describe responsibilities; the build preserves the same layout under `dist/assets/`.
 
-For direct `file://` opening, the build also generates `dist/standalone/`: a classic application bundle and packaged Blob worker sources. The compiler worker expands a compressed resource archive and supplies in-memory I/O to the same compiler and TeX filesystem. Local file sessions use full compilation and skip shared-memory live / standby workers. Hosted sessions retain the existing module workers and persistent paragraph compiler. The distribution manifest verifies generated bundle hashes and the source inputs used to produce them.
+For direct `file://` opening, the build also generates `dist/standalone/`: a classic application bundle, packaged Blob worker sources and one compressed resource archive. Both compiler workers expand that archive and supply in-memory I/O to the same compiler and TeX filesystem. Local file sessions retain a live paragraph worker: build-time Binaryen Asyncify instrumentation lets LuaTeX pause its stdin read and resume on a worker message. The live worker receives parsed font tables and captured resources from the full pass; Type 1 outlines are packaged for Canvas rendering without fetch. Local full passes use the original engine and skip the shared-memory standby worker. Hosted sessions retain the original engine, module workers and shared-memory paragraph transport. The distribution manifest verifies generated bundle hashes and the source inputs used to produce them.
 
 ```text
 src/
@@ -36,6 +36,7 @@ docs/          Guides, comparisons, methodology and recorded benchmark evidence
 | Preamble, paragraph spans and live-edit safety | [core/document.js](../src/core/document.js) |
 | Revisions, project switches and live / full scheduling | [compiler/session.js](../src/compiler/session.js) |
 | Live worker lifetime and serialized paragraph requests | [compiler/live-engine.js](../src/compiler/live-engine.js) |
+| Local worker stdin suspension and resumption | [compiler/async-runtime.js](../src/compiler/async-runtime.js) |
 | Resource inventory, engine loading and VFS access | [compiler/assets.js](../src/compiler/assets.js), [compiler/runtime.js](../src/compiler/runtime.js) |
 | Parsed font tables retained between engines and browser visits | [compiler/font-cache.js](../src/compiler/font-cache.js) |
 | Full capture, standby identity and host API | [compiler/full-pass.js](../src/compiler/full-pass.js) |

@@ -116,6 +116,12 @@ export class Renderer {
   async loadType1(dl) {
     for (const f of Object.values(dl.fonts || {}))
       if (!f.filename && !this.type1.has(f.name)) {
+        if (globalThis.rexLocal) {
+          const font = globalThis.rexLocal.type1[f.name];
+          if (!font) throw Error("Missing packaged font: " + f.name);
+          this.type1.set(f.name, font);
+          continue;
+        }
         const response = await fetch(
           new URL("../../vendor/type1/" + encodeURIComponent(f.name) + ".json", import.meta.url),
         );

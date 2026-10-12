@@ -100,7 +100,7 @@ onmessage = async ({data}) => {
     delete output.type;
     postMessage({type: 'layout', revision: data.revision, projectId: data.projectId, ...output, converged, passes,
       bibliographyRuns, indexRuns, pictureHits, usedStandby, bodyMs, ms: performance.now() - t,
-      ...(globalThis.rexLocal ? {} : {resources: resourceState(res)})}, [output.pdf.buffer]);
+      resources: resourceState(res)}, [output.pdf.buffer]);
     await saveFontCache(res);
     const next = pendingPreparation || data; pendingPreparation = null;
     if (data.options?.standby !== false) await prepare(next, aux);

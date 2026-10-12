@@ -56,9 +56,6 @@ async function init() {
   });
   const editor = source.view;
   window.rex = { session, renderer, editor };
-  if (local) {
-    $(".auto-preview").textContent = "Recompiles after typing pauses";
-  }
   async function persist() {
     // Merely viewing the starter must not replace the last saved project.
     if (!savedId) return;

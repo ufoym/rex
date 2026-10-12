@@ -19,14 +19,16 @@ for (const browserType of [webkit, chromium]) {
     await page.goto(new URL("../../dist/index.html", import.meta.url).href);
     assert.ok(await page.evaluate(() => !!globalThis.rexLocal), "File launch must load its packaged runtime");
     const ready = async () => {
-      await page.waitForFunction(() => window.rex?.session.warmed || /error|failed/i.test(document.querySelector("#status").textContent));
+      await page.waitForFunction(() => (window.rex?.session.warmed && rex.renderer.capture === rex.session.layout?.capture &&
+        rex.session.layout?.revision === rex.session.revision && /full compilation/.test(document.querySelector("#status").textContent)) ||
+        /error|failed|unavailable/i.test(document.querySelector("#status").textContent));
       assert.ok(await page.evaluate(() => !!rex.session.warmed), await page.locator("#log").textContent());
       await page.evaluate(() => rex.session.warmed);
     };
     await ready();
     await page.waitForFunction(() => rex.renderer.views.get(1)?.ready);
     assert.ok(await page.evaluate(() => rex.session.layout.pdf.length > 1000));
-    assert.equal(await page.evaluate(() => rex.session.live), null);
+    assert.ok(await page.evaluate(() => !!rex.session.live && !rex.session.live.box), "Local files must use the persistent compiler without shared memory");
     const revision = await page.evaluate(() => rex.session.revision);
     await page.evaluate(() => {
       const text = rex.editor.state.doc.toString();
@@ -34,8 +36,45 @@ for (const browserType of [webkit, chromium]) {
       if (next === text) throw Error("Missing starter paragraph");
       rex.editor.dispatch({changes: {from: 0, to: text.length, insert: next}});
     });
+    await page.waitForFunction(previous => rex.renderer.patches.size > 0 && rex.session.layout.revision === previous,
+      revision, {polling: 5, timeout: 10000});
+    assert.ok(await page.evaluate(() => rex.session.lastTiming?.paint < 650), "Local edit waited for the full compilation debounce");
+    const liveTimings = await page.evaluate(async () => {
+      const s = rex.session, samples = [];
+      clearTimeout(s.timer);
+      for (let i = 0; i < 30; i++) {
+        const before = s.lastTiming;
+        await s.edit(s.source.replace(i % 2 ? "Edit this fluent paragraph" : "Edit this local paragraph",
+          i % 2 ? "Edit this local paragraph" : "Edit this fluent paragraph"));
+        clearTimeout(s.timer);
+        if (s.lastTiming === before) throw Error("Local paragraph did not update");
+        samples.push(s.lastTiming.paint);
+      }
+      for (const [from, to] of [["你好", "您好"], ["E = mc^2", "E = mc^3"]]) {
+        const before = s.lastTiming;
+        await s.edit(s.source.replace(from, to));
+        clearTimeout(s.timer);
+        if (s.lastTiming === before) throw Error("Local CJK/math did not update: " + from);
+      }
+      // Burst edits must retain only the final revision, as on the hosted path.
+      const base = s.source;
+      await Promise.all(Array.from({length: 10}, (_, i) => s.edit(base.replace("Edit this local paragraph", "Edit this burst paragraph " + i))));
+      clearTimeout(s.timer);
+      if (!s.source.includes("Edit this burst paragraph 9")) throw Error("Lost final local edit");
+      await s.edit(s.source.replace("Edit this burst paragraph 9", "Edit this local paragraph"));
+      clearTimeout(s.timer);
+      rex.editor.dispatch({changes: {from: 0, to: rex.editor.state.doc.length, insert: s.source}});
+      s.full();
+      const sorted = samples.slice(2).sort((a, b) => a - b);
+      return {median: sorted[14], p95: sorted[26], patches: rex.renderer.patches.size};
+    });
+    assert.ok(liveTimings.p95 < 100, "Local warm paragraph updates exceeded 100 ms: " + JSON.stringify(liveTimings));
+    console.log(`${browserType.name()}: offline live timings (ms)`, liveTimings);
     await page.waitForFunction(previous => rex.session.layout?.revision > previous && !rex.session.busy, revision);
     await page.waitForFunction(() => rex.renderer.views.get(1)?.ready);
+    await ready();
+    const text = await page.evaluate(async () => (await (await rex.renderer.pdf.getPage(1)).getTextContent()).items.map(item => item.str).join(""));
+    assert.ok(text.includes("您好"), "Local live CJK edit did not reach the PDF");
     const download = page.waitForEvent("download");
     await page.locator("#download-menu summary").click();
     await page.locator("#export").click();

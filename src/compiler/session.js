@@ -125,7 +125,7 @@ export class Session {
     this.contextDirty = false;
     const generation = ++this.generation;
     this.live?.close();
-    if (!this.local) this.live = new LiveEngine(
+    this.live = new LiveEngine(
       { ...this.files, [this.main]: this.source },
       preamble(this.source),
       data.aux,
@@ -154,8 +154,8 @@ export class Session {
     try {
       await this.renderer.layout(data);
       if (generation !== this.generation) return;
-      if (!this.local) this.status("Preview ready · warming live editor…");
-      this.warmed = this.local ? Promise.resolve() : this.warm(this.live, generation);
+      this.status("Preview ready · warming live editor…");
+      this.warmed = this.warm(this.live, generation);
       await this.warmed;
       if (data.revision === this.revision)
         this.status(
@@ -205,7 +205,6 @@ export class Session {
     this.files[file] = source;
     const revision = ++this.revision;
     this.schedule();
-    if (this.local) { this.contextDirty = true; return; }
     let delta;
     try {
       if (!file.endsWith(".tex") || (file === this.main && preamble(before) !== preamble(source))) {

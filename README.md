@@ -38,7 +38,7 @@ Open [localhost:8080](http://127.0.0.1:8080). Rex shows the built-in document by
 
 To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
 
-You can also run `npm run build` and open `dist/index.html` directly in a browser, without a local server or network connection. Keep the entire `dist/` folder together. Local file mode packages the compiler and its resources and recompiles after typing pauses; HTTP / HTTPS hosting retains the faster persistent paragraph compiler.
+You can also run `npm run build` and open `dist/index.html` directly in a browser, without a local server or network connection. Keep the entire `dist/` folder together. Local file mode packages the compiler and its resources, keeps a paragraph compiler running for live edits, and recompiles the full document after typing pauses.
 
 Use the sun / moon icon to switch between light and dark themes. The choice survives refresh; before a theme is selected, Rex follows the device theme. PDF pages retain their original colours in every theme.
 

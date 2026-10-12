@@ -4,6 +4,7 @@ import { mkdirp } from "../../vendor/engine/vfs/lazyfs.js";
 import { startupAssets } from "./startup-assets.js";
 import { bundles, texFiles } from "./assets.js";
 import { loadFontCache } from "./font-cache.js";
+import { asyncRuntime } from "./async-runtime.js";
 export { bundles, texFiles } from "./assets.js";
 function runtimeIO() {
   const files = globalThis.rexLocal?.files;
@@ -69,8 +70,9 @@ export function restoreResources(state) {
 }
 export async function engine(res, files, log = () => {}, env = {}, wasmModule) {
   wasmModule ||= res.wasmModule;
+  const paused = env.REX_ASYNC_INPUT ? asyncRuntime(wasmModule) : null;
   const M = await createLuaTeX({
-    ...(wasmModule ? {instantiateWasm(imports, ready) {
+    ...(paused ? {instantiateWasm: paused.instantiateWasm} : wasmModule ? {instantiateWasm(imports, ready) {
       WebAssembly.instantiate(wasmModule, imports).then(instance => ready(instance, wasmModule));
       return {};
     }} : {}),
@@ -110,6 +112,7 @@ export async function engine(res, files, log = () => {}, env = {}, wasmModule) {
   }
   writeFiles(FS, files);
   FS.chdir("/work");
+  if (paused) M.callMain = args => paused.callMain(M, args);
   return M;
 }
 export function writeFiles(FS, files) {

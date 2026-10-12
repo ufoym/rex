@@ -39,6 +39,7 @@
     "pdfjs-dist": "4.10.38"
   },
   "devDependencies": {
+    "binaryen": "132.0.0",
     "esbuild": "0.28.2",
     "playwright": "1.51.1"
   },

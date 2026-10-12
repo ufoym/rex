@@ -1,12 +1,11 @@
-import { mailbox, send, encodeRequest } from "../protocol/transport.js";
+import { mailbox, send, encodeRequest, CAPACITY } from "../protocol/transport.js";
 import { decodeDisplayList } from "../protocol/display-list.js";
+import { moduleWorker } from "../protocol/worker.js";
 
 export class LiveEngine {
   constructor(files, preambleText, aux, onLog, resources) {
-    this.worker = new Worker(new URL("../workers/live-worker.js", import.meta.url), {
-      type: "module",
-    });
-    this.box = mailbox();
+    this.worker = moduleWorker(new URL("../workers/live-worker.js", import.meta.url));
+    this.box = globalThis.rexLocal ? null : mailbox();
     this.queue = Promise.resolve();
     this.contexts = new Set();
     this.verified = new Set();
@@ -70,10 +69,12 @@ export class LiveEngine {
               reject(e);
             };
             try {
-              send(
-                this.box,
-                encodeRequest(message),
-              );
+              const bytes = encodeRequest(message);
+              if (this.box) send(this.box, bytes);
+              else {
+                if (bytes.length > CAPACITY) throw Error("Paragraph exceeds 2 MiB; waiting for full compilation");
+                this.worker.postMessage({type: "request", bytes}, [bytes.buffer]);
+              }
             } catch (e) {
               this.reject(e);
             }
