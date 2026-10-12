@@ -117,8 +117,8 @@ try {
   await page.locator(".cm-content").focus();
   await page.keyboard.press(`${mod}+z`);
   assert.equal(await doc(), main, "Switching files lost undo history");
-  await page.keyboard.press(`${mod}+Shift+z`);
-  assert.equal(await doc(), edited);
+  await page.keyboard.press(mod === "Meta" ? "Meta+Shift+z" : "Control+y");
+  assert.equal(await doc(), edited, "Switching files lost redo history");
   await ready();
   await page.waitForFunction(() => document.querySelector("#storage-status").textContent === "Saved in this browser");
   await page.selectOption("#filename", "chapters/body.tex");
