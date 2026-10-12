@@ -55,7 +55,7 @@ docs/          Guides, comparisons, methodology and recorded benchmark evidence
 | `artifacts/benchmarks/` | New benchmark reports and mismatch details | No |
 | `artifacts/archive/` | Historical experiment scripts, snapshots and logs, grouped by archive date | No |
 | `artifacts/build-*` | Temporary build staging, removed by the build | No |
-| `docs/benchmarks/` | Reviewed, published measurement evidence | Yes |
+| `docs/*.json` | Reviewed, published measurement evidence | Yes |
 
 The development server maps `/assets/` to `src/` and `/vendor/` to `vendor/`. Production publishes `public/`, `src/` and selected vendor files as one static site. Relative URLs must work in both layouts and under a site prefix such as `/rex/`.
 
