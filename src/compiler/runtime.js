@@ -5,8 +5,19 @@ import { startupAssets } from "./startup-assets.js";
 import { bundles, texFiles } from "./assets.js";
 import { loadFontCache } from "./font-cache.js";
 export { bundles, texFiles } from "./assets.js";
+function runtimeIO() {
+  const files = globalThis.rexLocal?.files;
+  if (!files) return browserIO();
+  const read = url => {
+    const key = decodeURIComponent(new URL(url).pathname).slice(1);
+    if (!Object.hasOwn(files, key)) throw Error("Missing packaged resource: " + key);
+    return files[key];
+  };
+  return {fetch: async url => read(url), fetchSync: read,
+    fetchJson: async url => JSON.parse(new TextDecoder().decode(read(url)))};
+}
 export async function resources(
-  io = browserIO(),
+  io = runtimeIO(),
   base = new URL("../../vendor/", import.meta.url).href,
   progress = () => {},
 ) {
@@ -51,7 +62,7 @@ export function resourceState(res) {
     wasmModule: res.wasmModule, fontCache: res.fontCache};
 }
 export function restoreResources(state) {
-  const set = new BundleSet(browserIO());
+  const set = new BundleSet(runtimeIO());
   for (const {spec, base, manifest} of state.manifests) set.addLoaded(spec, base, manifest);
   set.cache = new Map(state.cache);
   return {set, scripts: state.scripts, wasmModule: state.wasmModule, fontCache: state.fontCache};

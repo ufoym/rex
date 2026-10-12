@@ -50,10 +50,15 @@ for (const [name, expected] of Object.entries(manifest.files)) {
   const source = name.startsWith("assets/") ? "src/" + name.slice(7)
     : name.startsWith("vendor/") ? name
     : ["LICENSE", "THIRD_PARTY.md"].includes(name) ? name : "public/" + name;
-  for (const file of [source, "dist/" + name]) {
+  for (const file of [...(name.startsWith("standalone/") ? [] : [source]), "dist/" + name]) {
     const bytes = await readFile(path.join(root, file));
     if (bytes.length !== expected.bytes || createHash("sha256").update(bytes).digest("hex") !== expected.sha256)
       throw Error(`Build is missing or stale: ${file}. Run npm run build.`);
   }
+}
+for (const [name, hash] of Object.entries(manifest.generatedInputs || {})) {
+  if (name.startsWith("/") || name.split("/").includes("..")) throw Error("Invalid generated input: " + name);
+  if (createHash("sha256").update(await readFile(path.join(root, name))).digest("hex") !== hash)
+    throw Error("Standalone build is stale: " + name + ". Run npm run build.");
 }
 console.log(`Checked syntax, module paths, documentation links and ${Object.keys(manifest.files).length} published assets against source.`);

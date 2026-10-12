@@ -1,6 +1,8 @@
 # Project structure
 
-Rex serves application code as native ES modules. The CodeMirror dependency is bundled locally with esbuild; setup, build and the development server generate `vendor/codemirror.mjs` and its component licences. Directory names describe responsibilities; the build preserves the same layout under `dist/assets/`.
+Rex serves hosted application code as native ES modules. The CodeMirror dependency is bundled locally with esbuild; setup, build and the development server generate `vendor/codemirror.mjs` and its component licences. Directory names describe responsibilities; the build preserves the same layout under `dist/assets/`.
+
+For direct `file://` opening, the build also generates `dist/standalone/`: a classic application bundle and packaged Blob worker sources. The compiler worker expands a compressed resource archive and supplies in-memory I/O to the same compiler and TeX filesystem. Local file sessions use full compilation and skip shared-memory live / standby workers. Hosted sessions retain the existing module workers and persistent paragraph compiler. The distribution manifest verifies generated bundle hashes and the source inputs used to produce them.
 
 ```text
 src/

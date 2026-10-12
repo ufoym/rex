@@ -38,6 +38,8 @@ Open [localhost:8080](http://127.0.0.1:8080). Edit the built-in document or impo
 
 To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
 
+You can also run `npm run build` and open `dist/index.html` directly in a browser, without a local server or network connection. Keep the entire `dist/` folder together. Local file mode packages the compiler and its resources and recompiles after typing pauses; HTTP / HTTPS hosting retains the faster persistent paragraph compiler.
+
 Use the sun / moon icon to switch between light and dark themes. The choice survives refresh; **Help → Use device theme** restores automatic switching. PDF pages retain their original colours in every theme.
 
 For GitHub Pages, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions** in your repository. The [Pages workflow](.github/workflows/pages.yml) builds and verifies the site, then publishes `dist/` on every push to `main`. Once deployment succeeds, open the site URL shown in **Settings → Pages**. You can also run **Deploy GitHub Pages** manually from the Actions tab on `main`.
@@ -61,7 +63,7 @@ npm run bench  # requires native lualatex
 | `examples/` | Small projects to import and compile |
 | `docs/` | User guide, architecture, comparisons and benchmark evidence |
 
-Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. Application ES modules are served directly; the editor dependency is bundled during build, with no application backend.
+Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. Hosted application ES modules are served directly; the editor dependency and local file mode are bundled during build, with no application backend.
 
 Read the [user guide](docs/guide.md), [project structure](docs/architecture.md), [feature and performance comparisons](docs/comparison.md), [benchmark methodology](docs/performance.md) and [contribution guidelines](CONTRIBUTING.md).
 

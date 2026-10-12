@@ -97,7 +97,9 @@ Cross-Origin-Embedder-Policy: require-corp
 Cross-Origin-Resource-Policy: same-origin
 ```
 
-`_headers` supports Netlify / Cloudflare Pages; configure equivalent headers elsewhere. Relative module URLs support subpaths such as `/rex/`; redirect directory URLs to include the trailing slash. HTTPS and localhost support workers; `file://` does not.
+`_headers` supports Netlify / Cloudflare Pages; configure equivalent headers elsewhere. Relative module URLs support subpaths such as `/rex/`; redirect directory URLs to include the trailing slash.
+
+To use Rex without a server, open the built `dist/index.html` directly in Chrome or Safari. Keep the complete `dist/` folder together. The build includes classic script bundles, Blob workers and compressed compiler resources under `dist/standalone/`, so first startup and subsequent editing work without a network connection. Local file mode uses full compilation after typing pauses; the persistent paragraph compiler and performance check require HTTP / HTTPS because local files cannot use shared memory. Project import, source editing, navigation and PDF / project downloads remain available. Browser storage support for local files varies; the editor reports storage failures, and downloaded `.rex` projects provide portable backups.
 
 On HTTPS hosts without isolation headers, `sw.js` adds them to cached responses and may reload the first visit. The browser must support cross-origin isolation, SharedArrayBuffer, Atomics, workers, WebAssembly and Canvas. Offline mode serves previously loaded resources; missing packages and unused bibliography tools still need an initial download. Publish resources together and reload to acquire a new version.
 

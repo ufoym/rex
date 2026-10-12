@@ -1,6 +1,7 @@
 import { LiveEngine } from "./live-engine.js";
 import { equivalent } from "../protocol/display-list.js";
 import { preamble, paragraphs, changedSpan, safe } from "../core/document.js";
+import { moduleWorker } from "../protocol/worker.js";
 export class Session {
   constructor(renderer, onStatus, onLog) {
     this.renderer = renderer;
@@ -11,13 +12,13 @@ export class Session {
     this.projectId = 0;
     this.files = {};
     this.main = "main.tex";
+    this.local = !!globalThis.rexLocal;
     this.createBackground();
   }
   createBackground() {
     this.background?.terminate();
-    this.background = new Worker(
+    this.background = moduleWorker(
       new URL("../workers/background-worker.js", import.meta.url),
-      { type: "module" },
     );
     this.backgroundFailed = false;
     this.background.onmessage = ({ data }) => this.onBackground(data);
@@ -124,7 +125,7 @@ export class Session {
     this.contextDirty = false;
     const generation = ++this.generation;
     this.live?.close();
-    this.live = new LiveEngine(
+    if (!this.local) this.live = new LiveEngine(
       { ...this.files, [this.main]: this.source },
       preamble(this.source),
       data.aux,
@@ -133,7 +134,7 @@ export class Session {
     );
     // The snapshot is only needed to seed the live worker, not the retained PDF layout.
     delete data.resources;
-    this.live.ready.catch((e) => {
+    this.live?.ready.catch((e) => {
       if (generation === this.generation) {
         this.log(String(e));
         this.status("Live engine unavailable");
@@ -148,17 +149,17 @@ export class Session {
     ))
       labels.push([(m[1] === "newlabel" ? "r@" : "b@") + m[2], m[3]]);
     this.live
-      .request({ op: "labels", labels })
+      ?.request({ op: "labels", labels })
       .catch((e) => this.log(String(e)));
     try {
       await this.renderer.layout(data);
       if (generation !== this.generation) return;
-      this.status("Preview ready · warming live editor…");
-      this.warmed = this.warm(this.live, generation);
+      if (!this.local) this.status("Preview ready · warming live editor…");
+      this.warmed = this.local ? Promise.resolve() : this.warm(this.live, generation);
       await this.warmed;
       if (data.revision === this.revision)
         this.status(
-          `${data.capture.pages} ${data.capture.pages === 1 ? "page" : "pages"} · full compilation ${data.ms.toFixed(0)} ms${data.converged ? "" : " · not yet converged"}`,
+          `${data.capture.pages} ${data.capture.pages === 1 ? "page" : "pages"} · full compilation ${data.ms.toFixed(0)} ms${data.converged ? "" : " · not yet converged"}${this.local ? " · local file" : ""}`,
         );
     } catch (e) {
       if (generation !== this.generation) return;
@@ -204,6 +205,7 @@ export class Session {
     this.files[file] = source;
     const revision = ++this.revision;
     this.schedule();
+    if (this.local) { this.contextDirty = true; return; }
     let delta;
     try {
       if (!file.endsWith(".tex") || (file === this.main && preamble(before) !== preamble(source))) {

@@ -1,9 +1,12 @@
 import * as opentype from "../../vendor/opentype.js";
 import * as pdfjs from "../../vendor/pdfjs/pdf.mjs";
+import { moduleWorker } from "../protocol/worker.js";
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "../../vendor/pdfjs/pdf.worker.mjs",
   import.meta.url,
 ).href;
+if (globalThis.rexLocal)
+  pdfjs.GlobalWorkerOptions.workerPort = moduleWorker(pdfjs.GlobalWorkerOptions.workerSrc);
 const SP = (65536 * 72.27) / 96;
 export class Renderer {
   constructor(container) {

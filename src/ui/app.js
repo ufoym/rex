@@ -11,7 +11,8 @@ function addLog(s) {
   log.textContent = (log.textContent + "\n" + s).slice(-40000);
 }
 async function init() {
-  if (!crossOriginIsolated) {
+  const local = !!globalThis.rexLocal;
+  if (!local && !crossOriginIsolated) {
     if (!("serviceWorker" in navigator))
       throw Error("HTTPS or localhost with COOP/COEP headers is required");
     await navigator.serviceWorker.register("./sw.js");
@@ -24,10 +25,10 @@ async function init() {
     location.reload();
     return;
   }
-  sessionStorage.removeItem("rex-isolation-attempt");
+  if (!local) sessionStorage.removeItem("rex-isolation-attempt");
   // A controlled page is already isolated and skips registration above.
   // Check for service-worker fixes on each online visit without delaying startup.
-  if ("serviceWorker" in navigator)
+  if (!local && "serviceWorker" in navigator)
     navigator.serviceWorker.getRegistration().then(registration => registration?.update()).catch(() => {});
   const renderer = new Renderer($("#preview"));
   const session = new Session(
@@ -50,6 +51,11 @@ async function init() {
   });
   const editor = source.view;
   window.rex = { session, renderer, editor };
+  if (local) {
+    $(".auto-preview").textContent = "Recompiles after typing pauses";
+    $("#benchmark").disabled = true;
+    $("#benchmark-result").textContent = "Paragraph performance checks are available when Rex is hosted over HTTP or HTTPS.";
+  }
   async function persist() {
     try {
       await saveProject({files: session.files, main: session.main, active});
@@ -226,7 +232,7 @@ async function init() {
       if (session.layout?.revision !== session.revision) session.schedule();
     }
   };
-  if ("serviceWorker" in navigator)
+  if (!local && "serviceWorker" in navigator)
     navigator.serviceWorker.register("./sw.js").catch(addLog);
 }
 init().catch((e) => {

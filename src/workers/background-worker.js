@@ -16,6 +16,7 @@ function prepare(data, aux = data.aux || {}) {
   return job;
 }
 async function prepareInner(data, aux, generation) {
+  if (globalThis.rexLocal) return;
   const key = await standbyKey(data.files, data.main) + await signatureOf(aux);
   if (generation !== epoch) return;
   if (standby && warmKey === key) return;
@@ -99,7 +100,7 @@ onmessage = async ({data}) => {
     delete output.type;
     postMessage({type: 'layout', revision: data.revision, projectId: data.projectId, ...output, converged, passes,
       bibliographyRuns, indexRuns, pictureHits, usedStandby, bodyMs, ms: performance.now() - t,
-      resources: resourceState(res)}, [output.pdf.buffer]);
+      ...(globalThis.rexLocal ? {} : {resources: resourceState(res)})}, [output.pdf.buffer]);
     await saveFontCache(res);
     const next = pendingPreparation || data; pendingPreparation = null;
     if (data.options?.standby !== false) await prepare(next, aux);

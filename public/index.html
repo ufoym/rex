@@ -77,6 +77,26 @@
       </details>
     </footer>
     <pre id="log" hidden aria-label="Compilation log"></pre>
-    <script type="module" src="./assets/ui/app.js"></script>
+    <script>
+      if (location.protocol === "file:") {
+        document.querySelector("#status").textContent = "Loading local typesetting resources…";
+        const workers = document.createElement("script");
+        workers.src = "./standalone/workers.js";
+        workers.onload = () => {
+          const app = document.createElement("script");
+          app.src = "./standalone/app.js";
+          document.body.append(app);
+        };
+        workers.onerror = () => {
+          document.querySelector("#status").textContent = "Open dist/index.html after running npm run build";
+        };
+        document.body.append(workers);
+      } else {
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "./assets/ui/app.js";
+        document.body.append(script);
+      }
+    </script>
   </body>
 </html>
