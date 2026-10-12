@@ -6,11 +6,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { packFiles } from "../src/protocol/snapshot.js";
 import { asyncWasm } from "./async-wasm.mjs";
+import { startupFonts } from "./startup-fonts.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 
 export async function buildStandalone(stage) {
-  const inputs = new Set(["scripts/standalone.mjs", "scripts/build.mjs", "scripts/async-wasm.mjs", "package-lock.json"]);
+  const inputs = new Set(["scripts/standalone.mjs", "scripts/build.mjs", "scripts/async-wasm.mjs", "scripts/startup-fonts.mjs", "package-lock.json"]);
   const bundle = async (entryPoints, contents) => {
     const result = await build({
       absWorkingDir: root, ...(contents ? {stdin: {contents, resolveDir: root, sourcefile: "standalone-entry.js"}} : {entryPoints}),
@@ -60,6 +61,10 @@ export async function buildStandalone(stage) {
   // The build packages resources once; a Blob worker expands them without local
   // fetch/XHR, and the same BundleSet/compiler handles all document operations.
   await collect("assets/tex");
+  await collect("vendor/type1");
+  const seed = await startupFonts();
+  assets["vendor/engine/font-cache.bin"] = seed.bytes;
+  assets["vendor/engine/font-cache.json"] = new TextEncoder().encode(JSON.stringify({key: seed.key}));
   assets["vendor/engine/luatex-async.wasm"] = await asyncWasm(assets["vendor/engine/luatex.wasm"]);
   const archive = gzipSync(packFiles(assets), {level: 9}).toString("base64");
   const compiler = entry => bundle(null, `
@@ -67,6 +72,7 @@ export async function buildStandalone(stage) {
     const pending = [];
     globalThis.onmessage = ({data}) => pending.push(data);
     (async () => {
+      importScripts(globalThis.rexResourceURL);
       const base64 = globalThis.rexArchive;
       delete globalThis.rexArchive;
       const size = base64.length * 3 / 4 - (base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0);
@@ -82,6 +88,7 @@ export async function buildStandalone(stage) {
       const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
       globalThis.rexLocal = {files: unpackFiles(bytes)};
       await import(${JSON.stringify(path.join(root, entry))});
+      postMessage({type: "preloaded"});
       for (const data of pending) globalThis.onmessage({data});
     })().catch(error => {setTimeout(() => {throw error;});});
   `);
@@ -92,15 +99,10 @@ export async function buildStandalone(stage) {
     "/assets/workers/live-worker.js": {source: await compiler("src/workers/live-worker.js"), compiler: true},
     "/vendor/pdfjs/pdf.worker.mjs": {source: pdf},
   };
-  const type1 = {};
-  for (const name of (await readdir(path.join(stage, "vendor/type1"))).sort()) {
-    if (!name.endsWith(".json")) continue;
-    type1[name.slice(0, -5)] = JSON.parse(await readFile(path.join(stage, "vendor/type1", name), "utf8"));
-    inputs.add("vendor/type1/" + name);
-  }
   await mkdir(path.join(stage, "standalone"), {recursive: true});
-  await writeFile(path.join(stage, "standalone/workers.js"), "globalThis.rexLocal=" + JSON.stringify({workers, type1,
-    archive: "globalThis.rexArchive=" + JSON.stringify(archive) + ";\n"}) + ";\n");
+  await writeFile(path.join(stage, "standalone/workers.js"), "globalThis.rexLocal=" + JSON.stringify({workers}) +
+    ";globalThis.rexLocal.resourceURL=new URL(" + JSON.stringify("./resources.js") + ",document.currentScript.src).href;\n");
+  await writeFile(path.join(stage, "standalone/resources.js"), "globalThis.rexArchive=" + JSON.stringify(archive) + ";\n");
   await writeFile(path.join(stage, "standalone/app.js"), app);
   const hashes = {};
   for (const name of [...inputs].sort()) {

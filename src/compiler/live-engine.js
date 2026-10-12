@@ -3,11 +3,12 @@ import { decodeDisplayList } from "../protocol/display-list.js";
 import { moduleWorker } from "../protocol/worker.js";
 
 export class LiveEngine {
-  constructor(files, preambleText, aux, onLog, resources) {
-    this.worker = moduleWorker(new URL("../workers/live-worker.js", import.meta.url));
+  constructor(files, preambleText, aux, onLog, resources, worker) {
+    this.worker = worker || moduleWorker(new URL("../workers/live-worker.js", import.meta.url));
     this.box = globalThis.rexLocal ? null : mailbox();
     this.queue = Promise.resolve();
     this.contexts = new Set();
+    this.type1 = {};
     this.verified = new Set();
     this.closed = false;
     this.req = 0;
@@ -27,6 +28,7 @@ export class LiveEngine {
         return;
       }
       if (data.type !== "frame") return;
+      Object.assign(this.type1, data.type1);
       if (data.header.op === "ready") this.resolveReady();
       else if (data.header.op === "fatal") {
         this.reject?.(Error("Engine state changed; waiting for full compilation"));
@@ -116,6 +118,7 @@ export class LiveEngine {
       dl,
       fonts: data.fonts,
       assets: data.assets,
+      type1: this.type1,
       ms: performance.now() - t,
       engineMs: (h.t_tex_us + h.t_traverse_us + h.t_pack_us) / 1000,
       advanced: h.counters,

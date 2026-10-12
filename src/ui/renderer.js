@@ -113,14 +113,12 @@ export class Renderer {
     }
     return paths.get(key);
   }
-  async loadType1(dl) {
+  async loadType1(dl, outlines) {
+    for (const [name, font] of Object.entries(outlines || {})) if (!this.type1.has(name)) this.type1.set(name, font);
     for (const f of Object.values(dl.fonts || {}))
       if (!f.filename && !this.type1.has(f.name)) {
         if (globalThis.rexLocal) {
-          const font = globalThis.rexLocal.type1[f.name];
-          if (!font) throw Error("Missing packaged font: " + f.name);
-          this.type1.set(f.name, font);
-          continue;
+          throw Error("Missing packaged font: " + f.name);
         }
         const response = await fetch(
           new URL("../../vendor/type1/" + encodeURIComponent(f.name) + ".json", import.meta.url),
@@ -353,9 +351,9 @@ export class Renderer {
     }
     return {...place, x: place.x + left - line.x, w: right - left};
   }
-  async patch(unit, dl, fonts, isCurrent = () => true, assets) {
+  async patch(unit, dl, fonts, isCurrent = () => true, assets, outlines) {
     this.addFonts(fonts);
-    await this.loadType1(dl);
+    await this.loadType1(dl, outlines);
     await this.loadAssets(dl, assets);
     if (!isCurrent()) return;
     const exact = dl.lines.length === unit.placements.length && dl.lines.every((line, i) => line.h === unit.placements[i].h && line.d === unit.placements[i].d);

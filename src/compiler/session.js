@@ -14,6 +14,11 @@ export class Session {
     this.main = "main.tex";
     this.local = !!globalThis.rexLocal;
     this.createBackground();
+    if (this.local) {
+      // Decode the paragraph worker's resources alongside the first full pass.
+      const worker = this.preloadedLive = moduleWorker(new URL("../workers/live-worker.js", import.meta.url));
+      worker.onerror = () => { worker.terminate(); if (this.preloadedLive === worker) this.preloadedLive = null; };
+    }
   }
   createBackground() {
     this.background?.terminate();
@@ -52,6 +57,7 @@ export class Session {
     this.live?.close();
     this.live = null;
     this.layout = null;
+    this.aux = null;
     this.lastTiming = null;
     this.full();
   }
@@ -70,7 +76,7 @@ export class Session {
       main: this.main,
       revision: this.revision,
       projectId: this.projectId,
-      aux: this.layout?.aux,
+      aux: this.aux || this.layout?.aux,
       options: this.options,
     });
   }
@@ -99,6 +105,9 @@ export class Session {
       if (this.wantFull) this.full();
       return;
     }
+    // A startup edit can obsolete the pixels while leaving useful converged
+    // references. Reuse those files; only the matching revision may be shown.
+    this.aux = data.aux;
     if (data.revision !== this.revision) {
       this.schedule();
       return;
@@ -131,7 +140,9 @@ export class Session {
       data.aux,
       this.log,
       data.resources,
+      this.preloadedLive,
     );
+    this.preloadedLive = null;
     // The snapshot is only needed to seed the live worker, not the retained PDF layout.
     delete data.resources;
     this.live?.ready.catch((e) => {
@@ -191,7 +202,7 @@ export class Session {
     const probe = await live.compile(unit, source);
     if (live !== this.live) return false;
     this.renderer.addFonts(probe.fonts);
-    await this.renderer.loadType1(probe.dl);
+    await this.renderer.loadType1(probe.dl, probe.type1);
     if (live !== this.live) return false;
     await this.renderer.loadAssets(probe.dl, probe.assets);
     if (live !== this.live || !equivalent(probe.dl, unit, layout.pages)) return false;
@@ -245,7 +256,7 @@ export class Session {
       if (revision !== this.revision || live !== this.live) return;
       const result = await live.compile(unit, delta.next.text);
       if (revision !== this.revision || live !== this.live) return;
-      await this.renderer.patch(unit, result.dl, result.fonts, () => revision === this.revision && live === this.live, result.assets);
+      await this.renderer.patch(unit, result.dl, result.fonts, () => revision === this.revision && live === this.live, result.assets, result.type1);
       const counters = (x) =>
         Object.entries(x || {}).sort((a, b) => a[0].localeCompare(b[0]));
       if (

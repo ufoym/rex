@@ -30,14 +30,20 @@ onmessage = async ({ data }) => {
     wireDevices(M, input, (frame) => {
       const { header, binary } = decodeFrame(frame);
       // Fonts are collected while the runtime is alive. Font IDs vary per engine.
-      const fonts = {}, assets = {};
+      const fonts = {}, assets = {}, type1 = {};
       if (binary?.length) {
         const metadata = decodeDisplayList(binary, true);
-        for (const f of Object.values(metadata.fonts))
+        for (const f of Object.values(metadata.fonts)) {
           if (f.filename && !sent.has(f.filename)) {
             fonts[f.filename] = M.FS.readFile(f.filename);
             sent.add(f.filename);
+          } else if (local && !f.filename && !sent.has("type1:" + f.name)) {
+            const bytes = globalThis.rexLocal.files["vendor/type1/" + f.name + ".json"];
+            if (!bytes) throw Error("Missing packaged font: " + f.name);
+            type1[f.name] = JSON.parse(new TextDecoder().decode(bytes));
+            sent.add("type1:" + f.name);
           }
+        }
         for (const image of Object.values(metadata.images_info))
           if (!sent.has(image.file)) {
             assets[image.file] = M.FS.readFile(image.file);
@@ -45,7 +51,7 @@ onmessage = async ({ data }) => {
           }
       }
       postMessage(
-        { type: "frame", header, binary, fonts, assets },
+        { type: "frame", header, binary, fonts, assets, type1 },
         binary ? [binary.buffer] : [],
       );
     });
