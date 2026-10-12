@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { chromium, webkit } from "playwright";
 import { openBrowser } from "../helpers/browser-helper.mjs";
 
-for (const browserType of [chromium, webkit]) {
+for (const browserType of [webkit, chromium]) {
   const browser = await browserType.launch();
   try {
     const context = await browser.newContext({acceptDownloads: true});
@@ -54,9 +54,26 @@ for (const browserType of [chromium, webkit]) {
     assert.ok(await page.evaluate(() => rex.session.layout?.converged), await page.locator("#log").textContent());
     assert.equal(await page.evaluate(() => rex.session.layout.bibliographyRuns), 1);
     assert.match(await page.evaluate(() => new TextDecoder().decode(rex.session.layout.aux["capture.bbl"])), /TeXbook/);
+    const nextProject = await page.evaluate(() => rex.session.projectId);
+    await page.locator("#open").setInputFiles([
+      {name: "main.tex", mimeType: "text/plain", buffer: Buffer.from(String.raw`\documentclass{article}
+\usepackage{makeidx}\makeindex
+\begin{document}
+A local citation \cite{knuth} and index entry.\index{Local entry}
+\bibliographystyle{plain}\bibliography{references}
+\printindex
+\end{document}`)},
+      {name: "references.bib", mimeType: "text/plain", buffer: Buffer.from("@book{knuth, author={Donald E. Knuth}, title={The TeXbook}, year={1984}, publisher={Addison-Wesley}}")},
+    ]);
+    await page.waitForFunction(previous => rex.session.projectId > previous &&
+      (rex.session.warmed || document.querySelector("#status").textContent.includes("failed")), nextProject);
+    assert.ok(await page.evaluate(() => rex.session.layout?.converged), await page.locator("#log").textContent());
+    assert.equal(await page.evaluate(() => rex.session.layout.bibliographyRuns), 1);
+    assert.ok(await page.evaluate(() => rex.session.layout.indexRuns > 0));
+    assert.match(await page.evaluate(() => new TextDecoder().decode(rex.session.layout.aux["capture.ind"])), /Local entry/);
     assert.deepEqual(network, [], "Direct file startup, editing and reload must work entirely offline");
     assert.deepEqual(errors, [], "Direct file mode must avoid CORS and uncaught errors");
-    console.log(`${browserType.name()}: direct file startup, offline editing, PDF export, restore and Biber import passed.`);
+    console.log(`${browserType.name()}: direct file startup, offline editing, PDF export, restore, Biber, BibTeX and MakeIndex passed.`);
   } finally {
     await browser.close();
   }

@@ -68,6 +68,7 @@ Follow the setup commands in the [README](../README.md). Set `PORT=8082 npm run 
 | --- | --- |
 | `npm run check` | Syntax, module / worker paths, links and distribution hashes |
 | `npm test` | Project round trips, incremental parsing, cache identity, WASM, frozen layout, state isolation and server boundaries |
+| `npm run test:startup` | Direct file startup, offline editing, PDF export, project restore, bibliography / indexing tools and hosted live compilation |
 | `npm run test:browser` | Editing, fonts, revisions, busy project switches, import / export / restore, child files, navigation, paragraph growth / splits / merges, overfull line cleanup, tables, image pixels, equations and footnote markers |
 | `npm run test:webkit` | Mobile WebKit under `/rex/`: service-worker isolation, download progress, PDF export, offline reload and live editing |
 | `npm run test:static` | Hosts without isolation headers, service worker and offline editing |

@@ -74,7 +74,9 @@ export async function buildStandalone(stage) {
         const chunk = atob(base64.slice(i, i + 65536));
         for (let j = 0; j < chunk.length; j++) compressed[offset++] = chunk.charCodeAt(j);
       }
-      const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("gzip"));
+      const stream = new ReadableStream({start(controller) {
+        controller.enqueue(compressed); controller.close();
+      }}).pipeThrough(new DecompressionStream("gzip"));
       const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
       globalThis.rexLocal = {files: unpackFiles(bytes)};
       await import(${JSON.stringify(path.join(root, "src/workers/background-worker.js"))});
