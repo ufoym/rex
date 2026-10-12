@@ -2,7 +2,7 @@ import { starterDocument } from "../core/starter.js";
 import { Renderer } from "./renderer.js";
 import { sourceEditor } from "./editor.js";
 import { Session } from "../compiler/session.js";
-import { project, importProject, loadProject, saveProject, encodeProject } from "../core/project.js";
+import { project, importProject, loadProject, loadRecentProjects, saveProject, encodeProject } from "../core/project.js";
 const $ = (s) => document.querySelector(s),
   status = $("#status"),
   log = $("#log");
@@ -36,10 +36,11 @@ async function init() {
     s => { status.textContent = s; updateExport(); },
     addLog,
   );
-  let active, saveTimer, previewPosition;
+  let active, saveTimer, previewPosition, savedId, savedName;
   const fileStates = new Map();
   const source = sourceEditor($("#editor"), {
     onChange: text => {
+      savedId ||= crypto.randomUUID();
       session.edit(text, active);
       updateExport();
       clearLocation();
@@ -57,9 +58,12 @@ async function init() {
     $("#benchmark-result").textContent = "Paragraph performance checks are available when Rex is hosted over HTTP or HTTPS.";
   }
   async function persist() {
+    // Merely viewing the starter must not replace the last saved project.
+    if (!savedId) return;
+    const value = {files: session.files, main: session.main, active, id: savedId, name: savedName};
     try {
-      await saveProject({files: session.files, main: session.main, active});
-      if (!saveTimer) $("#storage-status").textContent = "Saved in this browser";
+      await saveProject(value);
+      if (savedId === value.id && !saveTimer) $("#storage-status").textContent = "Saved in this browser";
     } catch (error) {
       addLog(String(error));
       $("#storage-status").textContent = "Not saved · download a backup";
@@ -83,6 +87,9 @@ async function init() {
     clearTimeout(saveTimer);
     saveTimer = null;
     active = null;
+    savedId = value.id;
+    savedName = value.name;
+    $("#storage-status").textContent = savedId ? "Saved in this browser" : "Example · edit to save";
     fileStates.clear();
     clearLocation();
     session.setFiles(value.files, value.main);
@@ -94,9 +101,48 @@ async function init() {
   }
   let restored;
   try { restored = await loadProject(); } catch (error) { addLog(String(error)); }
-  let legacy;
-  try { legacy = localStorage.getItem("rex-source"); } catch {}
-  openProject(restored || project({"main.tex": legacy || starterDocument}, "main.tex"));
+  const restore = $("#restore-project");
+  try {
+    restore.checked = localStorage.getItem("rex-restore-project") === "true";
+    const legacy = localStorage.getItem("rex-source");
+    if (!restored && legacy) {
+      restored = {...project({"main.tex": legacy}, "main.tex"), id: "legacy"};
+      await saveProject(restored);
+    }
+  } catch (error) { addLog(String(error)); }
+  restore.onchange = () => {
+    try { localStorage.setItem("rex-restore-project", String(restore.checked)); }
+    catch (error) { addLog(String(error)); status.textContent = "Startup preference could not be saved"; }
+  };
+  openProject((restore.checked && restored) || project({"main.tex": starterDocument}, "main.tex"));
+  async function refreshRecent() {
+    const list = $("#recent-projects");
+    try {
+      const recent = await loadRecentProjects();
+      const buttons = recent.map(value => {
+        const button = document.createElement("button"), detail = document.createElement("small");
+        button.textContent = value.name || value.main;
+        detail.textContent = `${value.main} · ${value.updated ? new Date(value.updated).toLocaleString() : "Saved in this browser"}`;
+        button.append(detail);
+        button.disabled = $("#benchmark").disabled && !local;
+        button.onclick = async () => {
+          try {
+            await persist();
+            const latest = (await loadRecentProjects()).find(entry => entry.id === value.id);
+            if (!latest) { status.textContent = "This recent project is no longer available"; return; }
+            openProject(latest);
+            await persist();
+          } catch (error) { addLog(String(error)); status.textContent = "Could not open the recent project"; }
+        };
+        return button;
+      });
+      list.replaceChildren(...buttons);
+      if (!buttons.length) { const empty = document.createElement("small"); empty.textContent = "No recent files"; list.append(empty); }
+    } catch (error) {
+      addLog(String(error));
+      list.textContent = "Recent files unavailable";
+    }
+  }
   document.addEventListener("visibilitychange", () => { if (document.hidden) { clearTimeout(saveTimer); saveTimer = null; persist(); } });
   $("#compile").onclick = () => session.full();
   $("#search").onclick = source.search;
@@ -109,7 +155,10 @@ async function init() {
   $("#choose-folder").onclick = () => $("#open-folder").click();
   const menus = [...document.querySelectorAll("details.menu")];
   for (const menu of menus) menu.addEventListener("toggle", () => {
-    if (menu.open) for (const other of menus) if (other !== menu) other.open = false;
+    if (menu.open) {
+      for (const other of menus) if (other !== menu) other.open = false;
+      if (menu.id === "open-menu") refreshRecent();
+    }
   });
   document.addEventListener("click", event => {
     for (const menu of menus) {
@@ -146,7 +195,11 @@ async function init() {
   };
   $("#open").onchange = async (e) => {
     try {
-      openProject(await importProject(e.target.files));
+      const value = await importProject(e.target.files);
+      const first = e.target.files[0];
+      const name = first.webkitRelativePath?.split("/")[0] || (e.target.files.length === 1 ? first.name : value.main);
+      await persist();
+      openProject({...value, id: crypto.randomUUID(), name});
       await persist();
     } catch (error) { status.textContent = String(error); }
     finally { e.target.value = ""; }
@@ -194,8 +247,8 @@ async function init() {
     const button = $("#benchmark");
     button.disabled = true;
     source.editable(false);
-    const controls = ["#choose-files", "#choose-folder", "#filename", "#compile"];
-    for (const selector of controls) $(selector).disabled = true;
+    const controls = [...document.querySelectorAll("#choose-files, #choose-folder, #recent-projects button, #filename, #compile")];
+    for (const control of controls) control.disabled = true;
     $("#benchmark-result").textContent = "Running…";
     clearTimeout(session.timer);
     try {
@@ -228,7 +281,7 @@ async function init() {
     } finally {
       button.disabled = false;
       source.editable(true);
-      for (const selector of controls) $(selector).disabled = false;
+      for (const control of [...controls, ...document.querySelectorAll("#recent-projects button")]) control.disabled = false;
       if (session.layout?.revision !== session.revision) session.schedule();
     }
   };

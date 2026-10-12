@@ -34,7 +34,7 @@ npm run setup
 npm run dev
 ```
 
-Open [localhost:8080](http://127.0.0.1:8080). Edit the built-in document or import a project from [examples/](examples/). **Open → Folder…** preserves nested paths; the file selector edits imported source files. **Download → Project (.rex)** saves a portable file containing every source and asset. The preview updates as you type; use **Recompile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
+Open [localhost:8080](http://127.0.0.1:8080). Rex shows the built-in document by default; reopen saved projects from **Open → Recent**, or enable **Help → Restore last project on startup**. Import a project with **Open → File…** or try [examples/](examples/). **Open → Folder…** preserves nested paths; the file selector edits imported source files. **Download → Project (.rex)** saves a portable file containing every source and asset. The preview updates as you type; use **Recompile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
 
 To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
 

@@ -43,6 +43,16 @@ for (const browserType of [webkit, chromium]) {
     await page.waitForFunction(() => document.querySelector("#storage-status").textContent === "Saved in this browser");
     await page.reload();
     await ready();
+    assert.match(await page.evaluate(() => rex.editor.state.doc.toString()), /Edit this paragraph/);
+    await page.locator("#open-menu > summary").click();
+    await page.locator("#recent-projects button").click();
+    await page.waitForFunction(() => rex.editor.state.doc.toString().includes("Edit this local paragraph"));
+    await ready();
+    assert.match(await page.evaluate(() => rex.editor.state.doc.toString()), /Edit this local paragraph/);
+    await page.locator("#help-menu > summary").click();
+    await page.locator("#restore-project").check();
+    await page.reload();
+    await ready();
     assert.match(await page.evaluate(() => rex.editor.state.doc.toString()), /Edit this local paragraph/);
     const projectId = await page.evaluate(() => rex.session.projectId);
     await page.locator("#open").setInputFiles([

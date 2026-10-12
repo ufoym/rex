@@ -49,9 +49,9 @@ export async function importProject(input) {
   const main = candidates.find(name => name === "main.tex") || candidates[0];
   return project(files, main);
 }
-// One durable browser project. IndexedDB stores binary dependencies without base64 expansion.
+// IndexedDB stores recent projects, including binary dependencies, without base64 expansion.
 let database;
-async function store(mode, value) {
+async function store(mode, action) {
   database ||= new Promise((resolve, reject) => {
     const request = indexedDB.open("rex", 1);
     request.onupgradeneeded = () => request.result.createObjectStore("projects");
@@ -60,13 +60,37 @@ async function store(mode, value) {
   const db = await database;
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("projects", mode), object = transaction.objectStore("projects");
-    const request = mode === "readonly" ? object.get("current") : object.put(value, "current");
+    const request = action(object);
     transaction.oncomplete = () => resolve(request.result);
     transaction.onerror = transaction.onabort = () => reject(transaction.error || request.error);
   });
 }
 export async function loadProject() {
-  const value = await store("readonly");
-  return value && project(value.files, value.main, value.active);
+  const value = await store("readonly", object => object.get("current"));
+  return value && {...value, ...project(value.files, value.main, value.active), id: value.id || "legacy"};
 }
-export const saveProject = async value => store("readwrite", project(value.files, value.main, value.active));
+export async function loadRecentProjects() {
+  const values = await store("readonly", object => object.getAll());
+  const unique = new Map(values.map(value => [value.id || "legacy", value]));
+  return [...unique.values()].sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 10)
+    .map(value => ({...value, ...project(value.files, value.main, value.active), id: value.id || "legacy"}));
+}
+export async function saveProject(value) {
+  const saved = {...project(value.files, value.main, value.active), id: value.id || "legacy", name: value.name || value.main, updated: Date.now()};
+  await store("readwrite", object => {
+    const request = object.get("current");
+    request.onsuccess = () => {
+      const previous = request.result;
+      if (previous && !previous.id) object.put({...previous, id: "legacy", name: previous.main, updated: 0}, "recent:legacy");
+      object.put(saved, "recent:" + saved.id);
+      object.put(saved, "current");
+      const all = object.getAll();
+      all.onsuccess = () => {
+        const recent = all.result.filter(entry => entry.id && entry.id !== saved.id)
+          .sort((a, b) => b.updated - a.updated);
+        for (const entry of recent.slice(9)) object.delete("recent:" + entry.id);
+      };
+    };
+    return request;
+  });
+}

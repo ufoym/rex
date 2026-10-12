@@ -68,21 +68,28 @@ button:disabled { opacity: .5; cursor: default; }
 .primary { background: var(--primary); color: white; border-color: var(--primary); }
 .primary:hover { background: var(--primary-hover); }
 .icon-button { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; padding: 7px; border-color: transparent; }
-svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.action-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.action-button > svg { width: 16px; height: 16px; }
 #theme .sun, :root[data-theme="dark"] #theme .moon { display: none; }
 :root[data-theme="dark"] #theme .sun { display: block; }
 .menu { position: relative; }
 summary { list-style: none; }
 summary::-webkit-details-marker { display: none; }
 .menu[open] > summary { background: var(--button-hover); }
-.chevron { margin-left: 8px; color: var(--muted); }
+.action-button > .chevron { width: 12px; height: 12px; margin-left: 2px; color: var(--muted); transition: transform .15s ease; }
+.menu[open] > summary .chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .action-button > .chevron { transition: none; } }
 .menu-panel {
   position: absolute; z-index: 20; top: calc(100% + 8px); right: 0;
   width: min(300px, calc(100vw - 24px)); padding: 6px; border: 1px solid var(--border);
   border-radius: 10px; background: var(--surface); box-shadow: 0 12px 36px #0002;
 }
 #open-menu .menu-panel { left: 0; right: auto; }
-.menu-panel > button { display: block; width: 100%; text-align: left; border: 0; padding: 11px 10px; white-space: normal; }
+.menu-panel > button, #recent-projects > button { display: block; width: 100%; text-align: left; border: 0; padding: 11px 10px; white-space: normal; overflow-wrap: anywhere; }
+.recent-section { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; max-height: 40vh; overflow-y: auto; }
+.recent-section > strong, #recent-projects > small { display: block; padding: 0 10px 6px; font-size: 11px; color: var(--muted); }
+.startup-setting { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .menu-panel small { display: block; font-size: 11px; line-height: 1.5; color: var(--muted); margin-top: 4px; }
 .help-panel, .diagnostics { padding: 16px; font-size: 12px; line-height: 1.6; }
 .help-panel p, .diagnostics p { color: var(--muted); margin: 8px 0 16px; }
@@ -138,17 +145,22 @@ footer { min-height: 36px; border-top: 1px solid var(--border); display: flex; a
 #log { margin: 0; background: var(--log-background); color: var(--log-text); font: 11px/1.7 monospace; max-height: min(220px, 30vh); overflow: auto; padding: 16px; white-space: pre-wrap; flex-shrink: 0; }
 @media (max-width: 1000px) { .brand small, .auto-preview { display: none; } }
 @media (max-width: 700px) {
-  header { padding: 10px 12px; min-height: 56px; gap: 8px; }
+  header { position: relative; padding: 10px 12px; min-height: 56px; gap: 8px; }
   .brand { font-size: 24px; }
   header .actions { gap: 4px; }
   header button, header summary { font-size: 11px; padding: 7px 8px; }
-  .chevron { margin-left: 4px; }
+  header .action-button { gap: 6px; }
+  header .action-button > svg { width: 14px; height: 14px; }
+  header .action-button > .chevron { width: 10px; height: 10px; margin-left: 0; }
+  #compile { width: 30px; height: 30px; padding: 6px; }
+  .compile-label { display: none; }
   header .icon-button { width: 30px; height: 30px; padding: 6px; }
   main { grid-template-columns: 1fr; grid-template-rows: 48% 52%; }
   .editor-pane { border-right: 0; border-bottom: 1px solid var(--border); }
   .pane-bar { padding: 4px 12px; min-height: 40px; }
   #preview { padding: 16px; }
-  #open-menu .menu-panel { left: auto; right: -80px; }
+  #open-menu { position: static; }
+  #open-menu .menu-panel { left: 12px; right: auto; }
   .editor-footer, footer { padding: 0 12px; font-size: 10px; }
 }
-@media (max-width: 360px) { header { flex-wrap: wrap; } header nav { margin-left: auto; } }
+@media (max-width: 360px) { header { flex-wrap: wrap; } header nav { margin-left: auto; } .back-label { display: none; } }

@@ -237,6 +237,8 @@ await page.locator("#download-menu > summary").click();
 const download = page.waitForEvent("download"); await page.click("#save-project");
 const exported = decodeProject(new Uint8Array(await fs.readFile(await (await download).path())));
 assert.equal(exported.files["chapters/body.tex"], editedChild); assert.deepEqual(exported.files["images/pixel.png"], new Uint8Array(png));
+await page.locator("#help-menu > summary").click();
+await page.locator("#restore-project").check();
 await page.reload();
 await page.waitForFunction(() => Boolean(window.rex?.session.warmed), {}, {timeout: 120000, polling:100}); await page.evaluate(() => rex.session.warmed);
 assert.equal(await page.evaluate(() => rex.editor.state.doc.toString()), editedChild);

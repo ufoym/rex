@@ -12,23 +12,24 @@
       <div class="brand">Rex<small>LaTeX, as you type.</small></div>
       <nav class="actions" aria-label="Project actions">
         <details class="menu" id="open-menu">
-          <summary>Open <span class="chevron" aria-hidden="true">⌄</span></summary>
+          <summary class="action-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v2M3 8h5l2 3h11a1 1 0 0 1 1 1.3l-2 6A2 2 0 0 1 18 20H5a2 2 0 0 1-2-2Z"/></svg><span>Open</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
           <div class="menu-panel">
-            <button id="choose-files">Files…<small>A .tex document, its assets, or a .rex project</small></button>
+            <button id="choose-files">File…<small>A .tex document, its assets, or a .rex project</small></button>
             <button id="choose-folder">Folder…<small>All project files, keeping subfolders</small></button>
+            <div class="recent-section"><strong>Recent</strong><div id="recent-projects"><small>No recent files</small></div></div>
           </div>
         </details>
         <input id="open" type="file" multiple hidden />
         <input id="open-folder" type="file" webkitdirectory multiple hidden />
         <details class="menu" id="download-menu">
-          <summary>Download <span class="chevron" aria-hidden="true">⌄</span></summary>
+          <summary class="action-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg><span>Download</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
           <div class="menu-panel">
             <button id="export" disabled>PDF<small>The compiled document</small></button>
             <button id="save-project">Project (.rex)<small>All source files and assets; reopen in Rex</small></button>
             <button id="save">Current source file<small>The file you are editing</small></button>
           </div>
         </details>
-        <button id="compile" class="primary" title="Recompile the entire document (Ctrl/⌘ + Enter)">Recompile</button>
+        <button id="compile" class="primary action-button" aria-label="Recompile" title="Recompile the entire document (Ctrl/⌘ + Enter)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 6.1A8 8 0 0 1 20 12M4 12a8 8 0 0 0 13.9 5.9"/></svg><span class="compile-label">Recompile</span></button>
         <button id="theme" class="icon-button" aria-label="Switch to dark theme" title="Switch to dark theme">
           <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/></svg>
           <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
@@ -38,10 +39,11 @@
           <div class="menu-panel help-panel">
             <strong>Start writing</strong>
             <p>Edit the example or open your own files. The preview updates automatically.</p>
-            <p>Your project is saved in this browser. Download a project to keep a backup or move to another device.</p>
+            <p>Your project is saved in this browser. Open recent files from Open → Recent. Download a project to keep a backup or move to another device.</p>
             <dl><dt>Find / replace</dt><dd>Ctrl/⌘ F</dd><dt>Indent / unindent</dt><dd>Tab / Shift Tab</dd><dt>Recompile</dt><dd>Ctrl/⌘ Enter</dd><dt>Locate paragraph</dt><dd>Ctrl/⌘ Alt J</dd></dl>
             <p>Double-click a paragraph in the preview to edit its source. Press Esc to clear a highlight.</p>
             <button id="system-theme">Use device theme</button>
+            <label class="startup-setting"><input id="restore-project" type="checkbox" /> Restore last project on startup</label>
           </div>
         </details>
       </nav>
@@ -53,14 +55,14 @@
           <button id="search" class="icon-button" aria-label="Find and replace" title="Find and replace (Ctrl/⌘ + F)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
         </div>
         <div id="editor"></div>
-        <div class="editor-footer"><span id="position">Ln 1, Col 1</span><span id="storage-status">Saved in this browser</span></div>
+        <div class="editor-footer"><span id="position">Ln 1, Col 1</span><span id="storage-status">Example · edit to save</span></div>
       </section>
       <section class="preview-pane" aria-label="Document preview">
         <div class="pane-bar">
           <div class="preview-context"><span class="pane-label">Preview</span><span class="subtle auto-preview">Updates as you type</span></div>
           <div class="actions">
-            <button id="clear-location" hidden title="Clear the highlight and return to your previous position (Esc)">Back to preview</button>
-            <button id="locate" title="Highlight the paragraph at the editor cursor (Ctrl/⌘ + Alt + J)">Locate paragraph</button>
+            <button id="clear-location" class="action-button" hidden aria-label="Back to preview" title="Clear the highlight and return to your previous position (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 10-5 5 5 5M4 15h10a6 6 0 0 0 0-12h-2"/></svg><span class="back-label">Back to preview</span></button>
+            <button id="locate" class="action-button" title="Highlight the paragraph at the editor cursor (Ctrl/⌘ + Alt + J)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>Locate paragraph</button>
           </div>
         </div>
         <div id="preview"><div class="welcome"><strong>Your preview will appear here</strong><p>Preparing the typesetting engine. You can start editing now.</p></div></div>
@@ -69,7 +71,7 @@
     <footer>
       <span class="dot" aria-hidden="true"></span><span id="status" role="status">Preparing…</span>
       <details class="menu" id="tools-menu">
-        <summary>Tools <span class="chevron" aria-hidden="true">⌃</span></summary>
+        <summary class="action-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3m4 0h9M4 17h9m4 0h3"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg><span>Tools</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></summary>
         <div class="menu-panel">
           <button id="toggle-log" aria-expanded="false" aria-controls="log">Show compilation log<small>Details when a document fails to compile</small></button>
           <div class="diagnostics"><strong>Performance check</strong><p>Measures 300 paragraph compilations on this device. Editing pauses while it runs.</p><button id="benchmark">Run performance check</button><output id="benchmark-result" role="status"></output></div>
