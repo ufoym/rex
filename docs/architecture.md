@@ -21,7 +21,6 @@ scripts/       Setup, build, checks, local server and font conversion
 public/        HTML, CSS, service worker and static hosting headers
 examples/      Importable LaTeX projects
 docs/          Guides, comparisons, methodology and recorded benchmark evidence
-third_party/   Retained third-party source
 ```
 
 ## Where to make a change

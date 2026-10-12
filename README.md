@@ -44,7 +44,6 @@ npm run bench  # requires native lualatex
 | `scripts/` | Setup, build, server and checks |
 | `examples/` | Small projects to import and compile |
 | `docs/` | User guide, architecture, comparisons and benchmark evidence |
-| `third_party/` | Retained ctablestack source |
 
 Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. ES modules are served directly, with no bundler or application backend.
 

@@ -123,6 +123,8 @@ try {
   if (!process.argv.includes('--bibliography')) await setupEngine(temp);
   await setupBibliography(temp);
   await mkdir('vendor', {recursive:true});
-  await copyFile('third_party/ctablestack.sty', 'vendor/ctablestack.sty');
+  await download('https://mirrors.mit.edu/CTAN/install/macros/luatex/generic/ctablestack.tds.zip', path.join(temp, 'ctablestack.tds.zip'), 'a975aa44f20d7705b4e2d41a63008d00e4439143999cb12acce75f24d5d56943');
+  command('unzip', ['-q', path.join(temp, 'ctablestack.tds.zip'), '-d', path.join(temp, 'ctablestack')]);
+  await copyFile(path.join(temp, 'ctablestack/tex/luatex/ctablestack/ctablestack.sty'), 'vendor/ctablestack.sty');
   console.log('Ready: npm run dev, or npm run build to produce dist/.');
 } finally { await rm(temp, {recursive:true, force:true}); }
