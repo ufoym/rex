@@ -4,13 +4,21 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
 const source = readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8");
-function harness() {
+function harness({cacheFailure} = {}) {
   const handlers = new Map(), cache = new Map();
   let network = 0;
   vm.runInNewContext(source, {
     self: {location: new URL("https://example.test/rex/sw.js"), addEventListener: (name, handler) => handlers.set(name, handler)},
-    caches: {open: async () => ({match: async request => cache.get(request.url)?.clone(),
-      put: async (request, response) => cache.set(request.url, response.clone())})},
+    caches: {open: async () => {
+      if (cacheFailure === "open") throw Error("SecurityError");
+      return {match: async request => {
+        if (cacheFailure === "match") throw Error("Storage unavailable");
+        return cache.get(request.url)?.clone();
+      }, put: async (request, response) => {
+        if (cacheFailure === "put") throw Error("QuotaExceededError");
+        cache.set(request.url, response.clone());
+      }};
+    }},
     fetch: async () => { network++; return new Response("fresh"); },
     URL, Headers, Response,
   });
@@ -31,6 +39,15 @@ test("cached content-hashed bundle files avoid repeated network validation", asy
   assert.equal(h.network(), 0);
   assert.equal(response.headers.get("Cross-Origin-Embedder-Policy"), "require-corp");
 });
+for (const cacheFailure of ["open", "match", "put"]) {
+  test(`successful downloads survive cache ${cacheFailure} failures`, async () => {
+    const h = harness({cacheFailure});
+    const response = await h.request("https://example.test/rex/vendor/engine/bundles/core/files/a.tfm?v=0123456789abcdef");
+    assert.equal(await response.text(), "fresh");
+    assert.equal(h.network(), 1);
+    assert.equal(response.headers.get("Cross-Origin-Embedder-Policy"), "require-corp");
+  });
+}
 test("a new hash and mutable application files still fetch current contents", async () => {
   const h = harness(), old = "https://example.test/rex/vendor/engine/bundles/core/files/a.tfm?v=0123456789abcdef";
   h.cache.set(old, new Response("cached"));

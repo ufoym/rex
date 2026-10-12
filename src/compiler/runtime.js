@@ -8,7 +8,17 @@ import { asyncRuntime } from "./async-runtime.js";
 export { bundles, texFiles } from "./assets.js";
 function runtimeIO() {
   const files = globalThis.rexLocal?.files;
-  if (!files) return browserIO();
+  if (!files) {
+    const io = browserIO();
+    for (const method of ["fetch", "fetchJson"]) {
+      const read = io[method];
+      io[method] = async url => {
+        try { return await read(url); }
+        catch (error) { throw new Error(`Failed to load engine resource ${url}: ${error}`, {cause: error}); }
+      };
+    }
+    return io;
+  }
   const read = url => {
     const key = decodeURIComponent(new URL(url).pathname).slice(1);
     if (!Object.hasOwn(files, key)) throw Error("Missing packaged resource: " + key);
