@@ -8,6 +8,18 @@ Results use **% faster / % slower**, calculated from unrounded summary values in
 
 Rex versus realtime-tex at the shared native compiler boundary and Rex versus its preceding browser build have matching timers. TeXpresso preview and native LuaLaTeX full-pass timers include different work from Rex; their faster / slower percentages describe recorded timings rather than directly comparable product speeds. Measurements cover these configurations only. Texifier, TeXlyre, Overleaf, Typst and pdfLaTeX have no same-machine timing here, so no percentage comparison is assigned to them.
 
+## Overall speed summary
+
+The README aggregates the recorded median timings using an equally weighted geometric mean: `ratio = exp(mean(log(baseline median / Rex median)))`, then `% faster = (ratio − 1) * 100`. Each case uses the median of its three run-level medians from the [raw report](performance.json). Ratios are computed before rounding; this is a workload summary, not a pooled edit percentile or a statistical significance estimate.
+
+| Baseline | Included cases | Geometric mean ratio | Overall recorded timing |
+| --- | --- | ---: | --- |
+| TeXpresso | First-paragraph preview edits at 10 / 100 / 300 pages | 2.49× | 149.1% faster |
+| realtime-tex | All 9 text cases (first / middle / last at 10 / 100 / 300 pages), plus the 300-page math case | 1.03× | 3.2% faster |
+| Preceding Rex browser build | First-paragraph preview edits at 10 / 100 / 300 pages | 1.52× | 51.6% faster |
+
+TeXpresso uses `comparison.texpresso.summary[].medianMs / final.summary[].median` matched by page count. Its timer includes pixel readback and verification while Rex stops at Canvas submission, so the aggregate compares these recorded boundaries. realtime-tex uses `comparison.realtimeTex.results[].summary`, dividing the baseline's `medianMs` by Rex's for all ten cases where both outputs validate. This includes the case where Rex is slower; the style case is excluded because upstream output validation fails. It measures native compilers, excluding editor sessions, WASM and rendering. The preceding build uses `parity.before.browser.summary[].median / final.summary[].median`, matched by page count with the same browser timer. Burst runs, cold starts, full passes and cross-machine texlode evidence are separate and do not enter these aggregates. Individual median / P95 results remain below.
+
 ## Auditing the comparison summary
 
 The comparison summary displays Rex median, baseline median, Rex P95, baseline P95 and the median percentage in separate columns, with one row per baseline and document size. The summary uses the first text paragraph consistently; the full native table below also retains middle / last edits, math and styles. Its data come from these paths in the [raw report](performance.json):

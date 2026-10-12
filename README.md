@@ -10,6 +10,18 @@ Rex keeps LuaTeX running in a WebAssembly worker and typesets verified paragraph
 - Editable multi-file projects, complete local storage and paragraph navigation.
 - Static hosting and offline use of previously loaded resources.
 
+## Performance
+
+**Warm browser previews take about 1.2 ms on 10–300-page documents.** On Apple M4, the recorded median timings give these overall results:
+
+| Baseline | Measured workflow | Rex overall |
+| --- | --- | --- |
+| TeXpresso | Warm preview updates, 3 document sizes | **149.1% faster (2.49×)**† |
+| realtime-tex | Native paragraph compiler, 10 validated text / math cases | **3.2% faster (1.03×)** |
+| Preceding Rex build | Warm browser preview updates, 3 document sizes | **51.6% faster (1.52×)** |
+
+Overall speed is the equally weighted geometric mean of baseline / Rex median ratios. † TeXpresso includes rendered-pixel readback and verification; Rex ends at Canvas submission. The realtime-tex comparison excludes both editors, WASM and rendering. These results describe the tested warm workloads; startup, full-document compilation and individual cases differ. See the [comparison](docs/comparison.md) and [methodology, raw data and aggregation](docs/performance.md#overall-speed-summary).
+
 ## Get started
 
 Requires Node.js 24+, Python 3 with venv / pip, curl, tar and unzip. Setup supports macOS and Linux.
