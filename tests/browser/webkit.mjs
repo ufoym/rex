@@ -92,11 +92,15 @@ try {
   await page.evaluate(() => rex.session.warmed);
   assert.equal(await page.evaluate(() => rex.session.live.closed), false,
     "Offline warming closed the live engine: " + await page.locator("#log").textContent());
+  // Let the offline startup's nested worker finish importing before teardown.
+  await page.waitForFunction(() => rex.session.standbyReady);
   const offlineSource = await page.evaluate(() => rex.editor.state.doc.toString()).then(s => s.replace("Edit this paragraph", "Edit this offline paragraph"));
   await replaceSource(page, offlineSource);
   assert.equal(await page.evaluate(() => rex.editor.state.doc.toString()), offlineSource,
     "Offline editing must replace the source without duplicating the document");
   await page.waitForFunction(() => window.rex?.session.lastTiming);
+  // This checks live editing; do not start a full pass while closing the page.
+  await page.evaluate(() => clearTimeout(rex.session.timer));
   await mkdir("artifacts/tests", {recursive: true});
   await page.screenshot({path: "artifacts/tests/webkit-mobile.png", fullPage: true});
   console.log("Mobile WebKit: /rex/ isolation, loading progress, cache quota failure, resource failure diagnostics, PDF export, offline reload and live editing passed.");
