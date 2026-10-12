@@ -1,6 +1,7 @@
 import { resources, restoreResources, engine, writeFiles } from "../compiler/runtime.js";
 import { captureFiles, compile } from "../compiler/full-pass.js";
 import { unpackFiles } from "../protocol/snapshot.js";
+import { collectFontCache } from "../compiler/font-cache.js";
 
 onmessage = async ({data}) => {
   try {
@@ -25,6 +26,6 @@ onmessage = async ({data}) => {
     FS.mkdev('/rex-standby', FS.makedev(81, 0));
     const output = compile(M, logs);
     const loadedResources = [...res.set.cache].filter(([key]) => !known.has(key));
-    postMessage({type: 'pass', ...output, loadedResources, logs, bodyMs: performance.now() - start}, [output.pdf.buffer]);
+    postMessage({type: 'pass', ...output, loadedResources, fontCache: collectFontCache(res, FS), logs, bodyMs: performance.now() - start}, [output.pdf.buffer]);
   } catch (e) { postMessage({type: 'failure', message: String(e)}); }
 };

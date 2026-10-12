@@ -3,6 +3,7 @@ import { BundleSet, browserIO } from "../../vendor/engine/vfs/bundle.js";
 import { mkdirp } from "../../vendor/engine/vfs/lazyfs.js";
 import { startupAssets } from "./startup-assets.js";
 import { bundles, texFiles } from "./assets.js";
+import { loadFontCache } from "./font-cache.js";
 export { bundles, texFiles } from "./assets.js";
 export async function resources(
   io = browserIO(),
@@ -10,6 +11,10 @@ export async function resources(
   progress = () => {},
 ) {
   const set = new BundleSet(io);
+  // Download/compile WASM while the TeX working set is loading.
+  const wasm = io.fetch(base + "engine/luatex.wasm");
+  const wasmModule = wasm.then(bytes => WebAssembly.compile(bytes));
+  wasmModule.catch(() => {});
   progress({phase: "fetching", detail: "engine manifests"});
   await set.addAll(
     bundles.map((name) => ({
@@ -37,18 +42,22 @@ export async function resources(
     ),
   );
   scripts["ctablestack.sty"] = await io.fetch(base + "ctablestack.sty");
-  return { set, scripts };
+  const res = { set, scripts, wasmModule: await wasmModule };
+  await loadFontCache(res, await wasm, base);
+  return res;
 }
 export function resourceState(res) {
-  return {manifests: res.set.manifests, cache: [...res.set.cache], scripts: res.scripts};
+  return {manifests: res.set.manifests, cache: [...res.set.cache], scripts: res.scripts,
+    wasmModule: res.wasmModule, fontCache: res.fontCache};
 }
 export function restoreResources(state) {
   const set = new BundleSet(browserIO());
   for (const {spec, base, manifest} of state.manifests) set.addLoaded(spec, base, manifest);
   set.cache = new Map(state.cache);
-  return {set, scripts: state.scripts};
+  return {set, scripts: state.scripts, wasmModule: state.wasmModule, fontCache: state.fontCache};
 }
 export async function engine(res, files, log = () => {}, env = {}, wasmModule) {
+  wasmModule ||= res.wasmModule;
   const M = await createLuaTeX({
     ...(wasmModule ? {instantiateWasm(imports, ready) {
       WebAssembly.instantiate(wasmModule, imports).then(instance => ready(instance, wasmModule));
@@ -74,11 +83,20 @@ export async function engine(res, files, log = () => {}, env = {}, wasmModule) {
   });
   const FS = M.FS;
   res.set.install(FS);
+  // Immutable bundle fonts need the same timestamp in every MEMFS instance,
+  // otherwise luaotfload discards perfectly valid parsed tables on each pass.
+  for (const file of res.set.files.values())
+    if (/\.(otf|ttf|ttc)$/i.test(file.path))
+      FS.utime("/texmf/" + file.path, 0, parseInt(file.sha?.slice(0, 7) || "0", 16) * 1000);
   for (const dir of ["/bin", "/work", "/rex", "/home", "/texmf-var"])
     mkdirp(FS, dir);
   FS.writeFile("/bin/luatex", "");
   for (const [name, data] of Object.entries(res.scripts))
     FS.writeFile("/rex/" + name, data);
+  for (const [name, data] of Object.entries(res.fontCache || {})) {
+    mkdirp(FS, name.slice(0, name.lastIndexOf("/")));
+    FS.writeFile(name, data);
+  }
   writeFiles(FS, files);
   FS.chdir("/work");
   return M;

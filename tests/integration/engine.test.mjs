@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { starterDocument } from "../../src/core/starter.js";
-import { coldPass } from "../../src/compiler/full-pass.js";
+import { coldPass, captureFiles, compile } from "../../src/compiler/full-pass.js";
 import { io, load } from "../helpers/runtime-helper.mjs";
 import {
   resources,
@@ -13,6 +13,8 @@ import {
   run,
   collect,
   liveDriver,
+  resourceState,
+  restoreResources,
 } from "../../src/compiler/runtime.js";
 import { decodeDisplayList, equivalent } from "../../src/protocol/display-list.js";
 import {
@@ -229,4 +231,13 @@ test("the starter compiles without serial network reads after loading resources"
     assert.ok(glyphs.some(item => item[2] === char.codePointAt(0)), "Starter lost a language's glyph: " + char);
   assert.ok(Object.keys(output.fonts).some(name => name.includes("NanumMyeongjo-Regular")), "Starter lacks its Korean font");
   assert.deepEqual(serial, [], "Startup dependencies should be fetched asynchronously before entering TeX");
+  assert.ok(Object.keys(fresh.fontCache).some(name => name.includes("fandolsong-regular.luc")),
+    "Cold compilation must retain parsed CJK font tables");
+  const shared = restoreResources(resourceState(fresh));
+  const logs = [], M = await engine(shared, captureFiles({"main.tex": starterDocument}, "main.tex", ""), line => logs.push(line));
+  const reused = compile(M, logs);
+  assert.deepEqual(reused.pages, output.pages, "Cached fonts must retain exact glyphs and geometry");
+  for (const name of Object.keys(shared.fontCache).filter(name => name.includes("/fonts/otl/")))
+    assert.equal(M.FS.analyzePath(name.replace(/\.luc$/, ".lua")).exists, false,
+      "A shared engine reparsed an already cached font: " + name);
 });

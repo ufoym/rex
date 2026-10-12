@@ -1,11 +1,11 @@
-import { resources, engine, run, liveDriver } from "../compiler/runtime.js";
+import { resources, restoreResources, engine, run, liveDriver } from "../compiler/runtime.js";
 import { decodeDisplayList } from "../protocol/display-list.js";
 import { wireDevices, decodeFrame } from "../protocol/transport.js";
 let res;
 const sent = new Set();
 onmessage = async ({ data }) => {
   try {
-    res = await resources();
+    res = data.resources ? restoreResources(data.resources) : await resources();
     const files = { ...data.files, ...data.aux, "live.tex": liveDriver(data.preamble) };
     if (data.aux?.["capture.aux"]) files["live.aux"] = data.aux["capture.aux"];
     if (data.aux?.["capture.bbl"]) files["live.bbl"] = data.aux["capture.bbl"];

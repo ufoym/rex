@@ -3,6 +3,7 @@ import { FullPass, standbyKey, bodySnapshot, coldPass } from '../compiler/full-p
 import { PictureCache, scanPictures } from '../compiler/picture-cache.js';
 import { AuxiliaryTools } from '../compiler/tools.js';
 import { digest, packFiles } from '../protocol/snapshot.js';
+import { saveFontCache } from '../compiler/font-cache.js';
 let res, wasmModule, standby, warmKey, cache = new PictureCache(), tools = new AuxiliaryTools();
 let running = false, pendingPreparation, pendingCompilation, activePass;
 let preparations = Promise.resolve();
@@ -49,7 +50,7 @@ onmessage = async ({data}) => {
     current();
     const t = performance.now(), initialStandby = standby, wasReady = standby?.isReady;
     progress({phase: 'engine'});
-    wasmModule ||= await res.set.io.fetch(new URL('../../vendor/engine/luatex.wasm', import.meta.url).href).then(WebAssembly.compile);
+    wasmModule ||= res.wasmModule;
     current();
     progress({phase: 'typesetting'});
     if (data.options?.standby === false) { standby?.close(); standby = null; warmKey = null; }
@@ -78,6 +79,7 @@ onmessage = async ({data}) => {
       passes++; 
       for (const [key, bytes] of output.loadedResources || []) res.set.cache.set(key, bytes);
       delete output.loadedResources;
+      if (output.fontCache) { res.fontCache = output.fontCache; delete output.fontCache; }
       bodyMs += output.bodyMs;
       pictureHits += output.capture.pic_hits || 0;
       await cache.absorb(pictures, output);
@@ -96,7 +98,9 @@ onmessage = async ({data}) => {
     current();
     delete output.type;
     postMessage({type: 'layout', revision: data.revision, projectId: data.projectId, ...output, converged, passes,
-      bibliographyRuns, indexRuns, pictureHits, usedStandby, bodyMs, ms: performance.now() - t}, [output.pdf.buffer]);
+      bibliographyRuns, indexRuns, pictureHits, usedStandby, bodyMs, ms: performance.now() - t,
+      resources: resourceState(res)}, [output.pdf.buffer]);
+    await saveFontCache(res);
     const next = pendingPreparation || data; pendingPreparation = null;
     if (data.options?.standby !== false) await prepare(next, aux);
   } catch (e) {

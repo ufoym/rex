@@ -129,7 +129,10 @@ export class Session {
       preamble(this.source),
       data.aux,
       this.log,
+      data.resources,
     );
+    // The snapshot is only needed to seed the live worker, not the retained PDF layout.
+    delete data.resources;
     this.live.ready.catch((e) => {
       if (generation === this.generation) {
         this.log(String(e));

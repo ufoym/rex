@@ -2,7 +2,7 @@ import { mailbox, send, encodeRequest } from "../protocol/transport.js";
 import { decodeDisplayList } from "../protocol/display-list.js";
 
 export class LiveEngine {
-  constructor(files, preambleText, aux, onLog) {
+  constructor(files, preambleText, aux, onLog, resources) {
     this.worker = new Worker(new URL("../workers/live-worker.js", import.meta.url), {
       type: "module",
     });
@@ -43,6 +43,7 @@ export class LiveEngine {
       preamble: preambleText,
       aux,
       mailbox: this.box,
+      resources,
     });
   }
   request(message) {

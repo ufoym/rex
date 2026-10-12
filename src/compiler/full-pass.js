@@ -1,6 +1,7 @@
 import { preamble } from '../core/document.js';
 import { digest, packFiles } from '../protocol/snapshot.js';
 import { engine, run, collect } from './runtime.js';
+import { collectFontCache } from './font-cache.js';
 // Index streams open in the preamble. Restoring old .idx bytes after that would leave stale entries.
 const inputAux = aux => Object.fromEntries(Object.entries(aux).filter(([name]) => !name.endsWith('.idx')));
 // Any dependency change invalidates a standby, including imported classes and preamble inputs.
@@ -32,6 +33,7 @@ export async function coldPass(res, data, aux, cacheFiles, wasmModule) {
     else logs.push(line);
   }, {}, wasmModule);
   const output = compile(M, logs);
+  collectFontCache(res, M.FS);
   return {...output, logs, bodyMs: performance.now() - start};
 }
 export class FullPass {
