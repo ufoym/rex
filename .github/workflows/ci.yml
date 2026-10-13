@@ -2,8 +2,14 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      full:
+        description: Run the complete offline build and browser regression suite
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,12 +31,24 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.13'
-      - name: Install dependencies and pinned runtime assets
+      - name: Install dependencies and verify clean setup bootstrap
         run: |
           npm ci
+          node --test tests/unit/setup.test.mjs
+      - name: Install pinned runtime assets and browsers
+        run: |
           npm run setup
           npx playwright install --with-deps chromium webkit
-      - name: Build and run regression suites
+      - name: Build and run quick regression checks
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.full) }}
+        run: |
+          npm run build:hosted
+          npm run check
+          npm test
+          npm run test:browser
+          npm run test:static
+      - name: Build and run complete regression suites
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.full }}
         run: |
           npm run build
           npm run test:all

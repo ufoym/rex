@@ -68,6 +68,8 @@ npm run test:all
 npm run bench  # requires native lualatex
 ```
 
+CI runs a hosted build, syntax / asset checks, all unit and integration tests, and editor / cached-offline browser checks on pull requests and pushes to `main`. Branch pushes are covered by their pull request, avoiding duplicate CI runs. The complete offline build, startup measurements and full Chromium / WebKit browser suites remain available in **Actions → CI → Run workflow → full**. Run that full regression before releasing or changing compiler / local-file runtime behaviour; `npm run build` and `npm run test:all` still run the same complete checks locally.
+
 | Directory | Contents |
 | --- | --- |
 | `src/` | UI, project model, compiler, protocols, workers and TeX modules |

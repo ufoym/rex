@@ -16,6 +16,8 @@ npm run test:all
 npm run bench  # when changing compilation or rendering performance
 ```
 
+The default CI uses a hosted build and runs the syntax / asset checks, every unit and integration test, and editor / cached-offline browser checks. For compiler or local-file runtime changes, also run **Actions → CI → Run workflow** with **full** selected on your branch. That option retains the complete offline build, startup measurements and all Chromium / WebKit browser suites. It is available before merging a pull request or preparing a release.
+
 Explain the problem, resulting behavior and validation in the pull request. Preserve frozen layout evidence; explain geometry changes rather than regenerating fixtures to hide them. Keep dependencies, lockfiles, download checksums and license notices consistent. Do not commit `vendor/`, `dist/` or `artifacts/`.
 
 ## Commit messages
