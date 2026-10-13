@@ -11,7 +11,7 @@ import { startupFonts } from "./startup-fonts.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 
 export async function buildStandalone(stage) {
-  const inputs = new Set(["scripts/standalone.mjs", "scripts/build.mjs", "scripts/async-wasm.mjs", "scripts/startup-fonts.mjs", "package-lock.json"]);
+  const inputs = new Set(["scripts/standalone.mjs", "scripts/build.mjs", "scripts/copy-assets.mjs", "scripts/prune-assets.mjs", "scripts/async-wasm.mjs", "scripts/startup-fonts.mjs", "package-lock.json"]);
   const bundle = async (entryPoints, contents) => {
     const result = await build({
       absWorkingDir: root, ...(contents ? {stdin: {contents, resolveDir: root, sourcefile: "standalone-entry.js"}} : {entryPoints}),

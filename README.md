@@ -47,9 +47,11 @@ npm run dev
 
 Open [localhost:8080](http://127.0.0.1:8080). Rex shows the built-in document by default; reopen saved projects from **Open → Recent**, or enable **Open → Recent → Open last project on startup**. Import a project with **Open → File…** or try [examples/](examples/). **Open → Folder…** preserves nested paths; the file selector edits imported source files. **Download → Project (.rex)** saves a portable file containing every source and asset. The preview updates as you type; use **Recompile** or ⌘/Ctrl + Enter for a full compilation. End users need no native TeX installation.
 
-To publish, run `npm run build` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
+For local distribution, run `npm run release`. Share the entire `artifacts/releases/rex-local/` folder and open its `index.html` directly. This includes the complete local runtime, fonts, Chinese support, bibliography/index tools and startup caches, without duplicate website assets. No server, installation or internet connection is required. The release command outputs a folder, without creating a compressed archive; the existing local resource format is unchanged.
 
-For a smaller web-only deployment, use `npm run build:hosted`. It omits the duplicate local-file resource archive; hosted compilation and cached offline use are unchanged. Use `npm run build` when you also need to open `dist/index.html` directly.
+To publish a website, run `npm run build:hosted` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
+
+The website build omits the duplicate local-file resource archive; hosted compilation and cached offline use are unchanged. Use `npm run build` for a combined distribution that supports both website hosting and opening `dist/index.html` directly. The local release folder is intended for direct opening; use the website build for HTTP hosting.
 
 You can also run `npm run build` and open `dist/index.html` directly in a browser, without a local server or network connection. Keep the entire `dist/` folder together. The editor starts while workers load compiler resources; bundled font tables reduce first-run font processing. Local file mode keeps a paragraph compiler running for live edits and recompiles the full document after typing pauses.
 
@@ -78,9 +80,13 @@ npm run bench  # requires native lualatex
 
 Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. Hosted application ES modules are served directly; the editor dependency and local file mode are bundled during build, with no application backend.
 
+Builds use copy-on-write file copies where supported (APFS on macOS, reflinks on supported Linux filesystems), with normal copies elsewhere. `vendor/` and `dist/vendor/` keep independent files while sharing unchanged disk data; editing either copy cannot change the other. The distribution remains self-contained and keeps direct local-file support. Logical folder sizes and exported archive sizes still count both copies; filesystem sharing reduces their combined storage on supported disks.
+
 `npm ci` automatically trims installed dependencies to the distributions Rex uses. It retains the Binaryen JavaScript API, esbuild platform binary, Playwright, Node test APIs, setup inputs and licences; unused native WASM CLIs, Node Canvas, alternative library builds and other language modes are removed. Run `npm run clean:deps` to apply the same trim to an existing install. This changes development dependencies only; the complete local-file and hosted application resources are preserved.
 
 Run `npm run clean` to remove downloaded package archives and external benchmark dependencies, build products and application caches. It preserves Rex's dependencies, runtime assets, distribution, reports, experimental source edits and latest font / Asyncify build caches. External comparison benchmarks need their dependencies rebuilt or downloaded after cleaning.
+
+Setup and build remove unused alternate TeX formats, a build-only TikZ format snapshot, shadowed bundle files, LuaTeX-ja's documentation source and Biber's C/XS/object files and test fixtures. Run `npm run clean:assets` to apply the same trim directly. Biber's retained data blocks are copied unchanged, with no recompression. Complete font glyphs, runtime packages, Unicode/locale data, WASM code, Type 1 outlines and startup caches are kept.
 
 Read the [user guide](docs/guide.md), [project structure](docs/architecture.md), [feature and performance comparisons](docs/comparison.md), [benchmark methodology](docs/performance.md) and [contribution guidelines](CONTRIBUTING.md).
 

@@ -8,7 +8,6 @@ export const bundles = [
   "tex-plain",
   "latex-core",
   "latex-extra",
-  "tikz-snapshot",
   "luatex",
   "opentype",
   "otf-fonts",

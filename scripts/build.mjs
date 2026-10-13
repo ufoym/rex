@@ -1,11 +1,14 @@
-import { access, cp, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundles } from "../src/compiler/assets.js";
 import { buildEditor } from "./editor-vendor.mjs";
+import { copyAssets, publishDirectory, removeExcludedAssets } from "./copy-assets.mjs";
+import { pruneAssets } from "./prune-assets.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+await pruneAssets(root);
 await buildEditor();
 const vendors = [ "codemirror.mjs", "codemirror-LICENSE.txt", "bibliography", "type1", "pdfjs", "opentype.js", "opentype-LICENSE", "pdf-lib.mjs", "pdf-lib-LICENSE.md", "ctablestack.sty"];
 const engineFiles = ["luatex.mjs", "luatex.wasm", "logger.js", "vfs/bundle.js", "vfs/lazyfs.js", "LICENSE", "NOTICE.md", "licenses", "bundles/hot.json", ...bundles.map(name => "bundles/" + name)];
@@ -15,10 +18,7 @@ for (const name of [...vendors, ...engineFiles.map(name => "engine/" + name)]) {
 }
 await mkdir(path.join(root, "artifacts"), { recursive: true });
 const stage = await mkdtemp(path.join(root, "artifacts", "build-"));
-const copy = (from, to) => cp(path.join(root, from), path.join(stage, to), {
-  recursive: true,
-  filter: file => !path.basename(file).startsWith("._") && ![".DS_Store", "__pycache__"].includes(path.basename(file)),
-});
+const copy = (from, to) => copyAssets(path.join(root, from), path.join(stage, to));
 try {
   // An explicit publication boundary excludes tests, tooling and development links.
   for (const name of ["index.html", "style.css", "sw.js", "_headers"])
@@ -27,6 +27,7 @@ try {
   for (const name of [...vendors, ...engineFiles.map(name => "engine/" + name)])
     await copy("vendor/" + name, "vendor/" + name);
   for (const name of ["LICENSE", "THIRD_PARTY.md"]) await copy(name, name);
+  await removeExcludedAssets(stage);
   const generatedInputs = process.argv.includes("--hosted") ? {}
     : await import("./standalone.mjs").then(({buildStandalone}) => buildStandalone(stage));
   const files = {};
@@ -43,8 +44,7 @@ try {
   }
   await inventory(stage);
   await writeFile(path.join(stage, "manifest.json"), JSON.stringify({ schema: 1, files, generatedInputs }, null, 2) + "\n");
-  await rm(path.join(root, "dist"), { recursive: true, force: true });
-  await rename(stage, path.join(root, "dist"));
+  await publishDirectory(stage, path.join(root, "dist"));
   console.log(`Built dist/: ${Object.keys(files).length} files, with SHA-256 inventory and component licences.`);
 } finally {
   await rm(stage, { recursive: true, force: true });

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import path from "node:path";
+import {pathToFileURL} from "node:url";
 import { chromium, webkit } from "playwright";
 import { openBrowser } from "../helpers/browser-helper.mjs";
 
@@ -16,7 +18,9 @@ for (const browserType of [webkit, chromium]) {
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (message.type() === "error") errors.push(message.text().slice(0, 1000)); });
     page.on("request", request => { if (/^https?:/.test(request.url())) network.push(request.url()); });
-    await page.goto(new URL("../../dist/index.html", import.meta.url).href);
+    await page.goto(process.env.REX_LOCAL_DIST
+      ? pathToFileURL(path.resolve(process.env.REX_LOCAL_DIST, "index.html")).href
+      : new URL("../../dist/index.html", import.meta.url).href);
     assert.ok(await page.evaluate(() => !!globalThis.rexLocal), "File launch must load its packaged runtime");
     const ready = async () => {
       await page.waitForFunction(() => (window.rex?.session.warmed && rex.renderer.capture === rex.session.layout?.capture &&

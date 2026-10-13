@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import path from "node:path";
+import {pathToFileURL} from "node:url";
 import {chromium, webkit} from "playwright";
 
 const results = [];
@@ -23,7 +25,9 @@ for (const browserType of [chromium, webkit]) {
         }
       }, 10);
     });
-    await page.goto(new URL("../../dist/index.html", import.meta.url).href);
+    await page.goto(process.env.REX_LOCAL_DIST
+      ? pathToFileURL(path.resolve(process.env.REX_LOCAL_DIST, "index.html")).href
+      : new URL("../../dist/index.html", import.meta.url).href);
     await page.waitForFunction(() => window.rex?.editor.state.doc.length, {}, {timeout: 15000});
     assert.equal(await page.evaluate(() => !!rex.session.layout), false, "Editor must be usable while the compiler starts");
     // Editing before the compiler is ready must survive startup and reach the PDF.
