@@ -1,11 +1,12 @@
 import {mkdir, mkdtemp, writeFile, rm, rename} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
-import {startupFonts} from './startup-fonts.mjs';
 import {unpackFiles} from '../src/protocol/snapshot.js';
 import {publishDirectory} from './copy-assets.mjs';
 
 export async function buildFontAssets(destination) {
+  // Setup must download the engine before loading tools that import its runtime.
+  const {startupFonts} = await import('./startup-fonts.mjs');
   const seed = await startupFonts(), files = unpackFiles(seed.bytes), metadata = {schema: 1, key: seed.key, files: {}};
   await mkdir(destination, {recursive: true});
   const scratch = await mkdtemp(path.join(destination, '.font-cache-'));
