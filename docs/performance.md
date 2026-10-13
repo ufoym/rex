@@ -4,6 +4,23 @@ The [comparison document](comparison.md) contains the [feature matrix](compariso
 
 Raw JSON reports are generated under ignored `artifacts/benchmarks/` and are not versioned. The historical files named below are retained locally under `artifacts/benchmarks/reports/`; a fresh checkout contains the result tables and reproduction drivers, but not those original samples. Rerunning a driver produces a new report for the current machine.
 
+## Runtime size and on-demand loading (2026-10-13)
+
+The production BusyTeX runtime now links only BibTeX8, MakeIndex and kpathsea. Its WASM shrank from 32,507,525 to 229,724 bytes (99.3% smaller). Seven bibliography/index fixtures produced byte-identical outputs in the old and new tools. The complete font inventory and separate Perl/Biber runtime remain available; both hosted and local-file builds load their resources on demand and display resource names and byte progress.
+
+These single-run measurements use fresh Chromium/WebKit contexts on Apple M4, Node.js 24.6.0. Local startup opens the multilingual starter through `file://`, blocks all HTTP, and measures navigation to the first painted PDF. The final sample uses the independent exported release folder. They describe observed elapsed times, not statistical significance.
+
+| Browser | Previous first preview | Current first preview | Elapsed-time reduction | Current warmed engine | First live edit paint |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Chromium | 11.09 s | 6.95 s | 37.4% | 8.58 s | 3.4 ms |
+| WebKit | 12.34 s | 7.15 s | 42.1% | 10.25 s | 8 ms |
+
+A cold English `fontspec` project reached the warmed engine in 1.78 / 2.38 s on the pure hosted build and 2.29 / 2.85 s in the independent local release (Chromium / WebKit). It loaded no CJK glyph binaries, BibTeX/MakeIndex module or Biber environment. Adding CJK, a bibliography with a named index, then a Biber bibliography loaded those dependencies at the relevant stage and produced converged output. There is no matched previous hosted-startup sample. Local warm paragraph-edit P95 remained 2 / 10 ms; the regression budget is 100 ms.
+
+Validation includes 69 unit/integration tests and browser suites for startup, resource loading, themes, UI, editor races, static-host/offline use, mobile WebKit, full compilation and Chinese fonts. The pure website build and independent local release both passed; reference text/layout checks, named/styled indices, all existing bibliography backends, PDF export and offline editing remain covered. The complete offline folder is 122.4 MiB, including all deferred resources.
+
+Raw results and scope are in `artifacts/benchmarks/resource-loading.json`, with logs under `artifacts/resource-loading/`. Reproduce with `npm run build && npm run test:all`. Test the pure website with `npm run build:hosted`, then `REX_LOADING_MODE=chromium:hosted npm run test:loading` and the corresponding `webkit:hosted` mode. Export with `npm run release`; use `REX_LOCAL_DIST=artifacts/releases/rex-local npm run test:startup`, `test:startup-speed`, and `test:loading` with `REX_LOADING_MODE=chromium:local` or `webkit:local`. The report preserves the previous samples; reproducing current tests does not reconstruct the historical baseline.
+
 ## Reading the percentages
 
 The opening percentage summary uses historical `performance.json` measurements. Current matched preview results are in the [Rex / realtime-tex](#matched-rex--realtime-tex-preview-measurements) and [TeXpresso](#matched-texpresso-preview-measurements) sections.

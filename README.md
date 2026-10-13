@@ -51,9 +51,9 @@ For local distribution, run `npm run release`. Share the entire `artifacts/relea
 
 To publish a website, run `npm run build:hosted` and deploy the entire `dist/` directory to a static HTTPS host. Use `npm run preview` to inspect the build locally.
 
-The website build omits the duplicate local-file resource archive; hosted compilation and cached offline use are unchanged. Use `npm run build` for a combined distribution that supports both website hosting and opening `dist/index.html` directly. The local release folder is intended for direct opening; use the website build for HTTP hosting.
+The website build omits the duplicate local-file resource archive; hosted compilation and cached offline use are unchanged. Use `npm run build` for a combined distribution that supports both website hosting and opening `dist/index.html` directly. Local runtime resources are split under `standalone/resources/` and `standalone/tools/`; keep those folders with the HTML. The local release folder is intended for direct opening; use the website build for HTTP hosting.
 
-You can also run `npm run build` and open `dist/index.html` directly in a browser, without a local server or network connection. Keep the entire `dist/` folder together. The editor starts while workers load compiler resources; bundled font tables reduce first-run font processing. Local file mode keeps a paragraph compiler running for live edits and recompiles the full document after typing pauses.
+You can also run `npm run build` and open `dist/index.html` directly in a browser, without a local server or network connection. Keep the entire `dist/` folder together. The editor starts while workers load compiler resources. Both website and local-file builds load fonts and auxiliary tools on demand, with resource names, byte progress and a loading indicator. A bundled font-name index avoids scanning every font; parsed font tables load only when needed. The complete local release remains offline, including Chinese fonts, BibTeX, Biber and MakeIndex. Local file mode keeps a paragraph compiler running for live edits and recompiles the full document after typing pauses.
 
 Use the sun / moon icon to switch between light and dark themes. The choice survives refresh; before a theme is selected, Rex follows the device theme. PDF pages retain their original colours in every theme.
 
@@ -78,7 +78,7 @@ npm run bench  # requires native lualatex
 | `examples/` | Small projects to import and compile |
 | `docs/` | User guide, architecture, comparisons and benchmark evidence |
 
-Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. Hosted application ES modules are served directly; the editor dependency and local file mode are bundled during build, with no application backend.
+Downloaded assets (`vendor/`), builds (`dist/`) and test output (`artifacts/`) are ignored by Git. A small verified two-tool WASM runtime is kept in `runtime/busytex/`; `npm run build:tools` reproduces it from pinned source using Emscripten 4.0.23. Setup installs this runtime instead of the complete BusyTeX engine collection. Hosted application ES modules are served directly; the editor dependency and local file mode are bundled during build, with no application backend.
 
 Builds use copy-on-write file copies where supported (APFS on macOS, reflinks on supported Linux filesystems), with normal copies elsewhere. `vendor/` and `dist/vendor/` keep independent files while sharing unchanged disk data; editing either copy cannot change the other. The distribution remains self-contained and keeps direct local-file support. Logical folder sizes and exported archive sizes still count both copies; filesystem sharing reduces their combined storage on supported disks.
 
