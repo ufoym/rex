@@ -2,7 +2,10 @@ import {readFile, writeFile, mkdir} from "node:fs/promises";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {resources} from "../src/compiler/runtime.js";
-import {coldPass} from "../src/compiler/full-pass.js";
+import {captureFiles, compile} from "../src/compiler/full-pass.js";
+import {engine} from "../src/compiler/runtime.js";
+import {collectFontCache} from "../src/compiler/font-cache.js";
+import {gunzipSync} from "node:zlib";
 import {fontCacheKey} from "../src/compiler/font-cache.js";
 import {starterDocument} from "../src/core/starter.js";
 import {digest, packFiles} from "../src/protocol/snapshot.js";
@@ -23,8 +26,16 @@ export async function startupFonts() {
   try { bytes = await readFile(cache); }
   catch (error) {
     if (error.code !== "ENOENT") throw error;
-    await coldPass(res, {files: {"main.tex": starterDocument}, main: "main.tex"}, {}, {});
-    bytes = packFiles(res.fontCache);
+    // The build sees only immutable bundle fonts, so this index has no user fonts.
+    const source = starterDocument.replace(String.raw`\end{document}`, () => String.raw`
+\directlua{local names=fonts.names.access_font_index(); names.meta["local"]=false; assert(fonts.names.save(names))}
+\end{document}`);
+    const logs = [], M = await engine(res, captureFiles({"main.tex": source}, "main.tex", ""), line => logs.push(line));
+    compile(M, logs);
+    collectFontCache(res, M.FS);
+    const namePath = "/texmf-var/luatex-cache/generic/names/luaotfload-names.luc";
+    const names = gunzipSync(M.FS.readFile(namePath + ".gz"));
+    bytes = packFiles({...res.fontCache, [namePath]: names});
     await mkdir(new URL("../artifacts/startup-fonts/", import.meta.url), {recursive: true});
     await writeFile(cache, bytes);
   }

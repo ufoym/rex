@@ -3,7 +3,7 @@ import { decodeDisplayList } from "../protocol/display-list.js";
 import { moduleWorker } from "../protocol/worker.js";
 
 export class LiveEngine {
-  constructor(files, preambleText, aux, onLog, resources, worker) {
+  constructor(files, preambleText, aux, onLog, resources, worker, onProgress) {
     this.worker = worker || moduleWorker(new URL("../workers/live-worker.js", import.meta.url));
     this.box = globalThis.rexLocal ? null : mailbox();
     this.queue = Promise.resolve();
@@ -17,6 +17,7 @@ export class LiveEngine {
       this.rejectReady = reject;
     });
     this.worker.onmessage = ({ data }) => {
+      if (data.type === 'progress') { onProgress?.(data); return; }
       if (data.type === "log") {
         onLog?.(data.line);
         return;

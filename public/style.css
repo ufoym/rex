@@ -166,3 +166,5 @@ footer { min-height: 36px; border-top: 1px solid var(--border); display: flex; a
   .editor-footer, footer { padding: 0 12px; font-size: 10px; }
 }
 @media (max-width: 360px) { header { flex-wrap: wrap; } header nav { margin-left: auto; } }
+
+#loading-progress { width: 5rem; height: .45rem; flex-shrink: 0; accent-color: var(--accent); }

@@ -70,6 +70,7 @@
     </main>
     <footer>
       <span class="dot" aria-hidden="true"></span><span id="status" role="status">Preparing…</span>
+      <progress id="loading-progress" aria-label="Loading resources" hidden></progress>
       <button id="toggle-log" aria-expanded="false" aria-controls="log">Show log</button>
     </footer>
     <pre id="log" hidden aria-label="Compilation log"></pre>
@@ -79,9 +80,17 @@
         const workers = document.createElement("script");
         workers.src = "./standalone/workers.js";
         workers.onload = () => {
-          const app = document.createElement("script");
-          app.src = "./standalone/app.js";
-          document.body.append(app);
+          const catalog = document.createElement("script");
+          catalog.src = "./standalone/resources.js";
+          catalog.onload = () => {
+            const app = document.createElement("script");
+            app.src = "./standalone/app.js";
+            document.body.append(app);
+          };
+          catalog.onerror = () => {
+            document.querySelector("#status").textContent = "Local resources failed to load · keep the complete Rex folder together";
+          };
+          document.body.append(catalog);
         };
         workers.onerror = () => {
           document.querySelector("#status").textContent = "Open dist/index.html after running npm run build";

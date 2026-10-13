@@ -14,7 +14,7 @@ test("checks accept a fresh hosted build without local caches and reject missing
       recursive: true,
       filter: file => ![".git", "node_modules", "vendor", "dist", "artifacts"].includes(path.relative(root, file).split(path.sep)[0]),
     });
-    for (const name of ["vendor", "dist"]) await symlink(path.join(root, name), path.join(scratch, name), "dir");
+    for (const name of ["node_modules", "vendor", "dist"]) await symlink(path.join(root, name), path.join(scratch, name), "dir");
     const check = () => spawnSync(process.execPath, [path.join(scratch, "scripts/check.mjs")], {encoding: "utf8"});
     const fresh = check();
     assert.equal(fresh.status, 0, fresh.stderr);

@@ -33,7 +33,14 @@ async function init() {
   const renderer = new Renderer($("#preview"));
   const session = new Session(
     renderer,
-    s => { status.textContent = s; updateExport(); },
+    (s, details) => {
+      status.textContent = s;
+      const bar = $("#loading-progress");
+      bar.hidden = details?.phase !== "fetching";
+      if (details?.totalBytes > 0) { bar.max = details.totalBytes; bar.value = details.loadedBytes || 0; }
+      else bar.removeAttribute("value");
+      updateExport();
+    },
     addLog,
   );
   let active, saveTimer, previewPosition, savedId, savedName;

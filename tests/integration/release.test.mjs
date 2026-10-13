@@ -10,8 +10,9 @@ test("local folder preserves standalone bytes and notices, excludes hosted dupli
   const scratch = await mkdtemp(path.join(tmpdir(), "rex-release-"));
   try {
     const dist = path.join(scratch, "dist"), output = path.join(scratch, "rex-local"), files = {};
-    for (const name of ["index.html", "style.css", "assets/ui/theme.js", "standalone/app.js", "standalone/workers.js", "standalone/resources.js", "LICENSE", "THIRD_PARTY.md", "vendor/engine/licenses/font.txt", "vendor/bibliography/TeXlyre-NOTICE", "vendor/engine/bundles/chinese/doc/OFL.txt", "vendor/engine/luatex.wasm", "assets/ui/app.js"]) {
-      const bytes = Buffer.from(name + "\n");
+    for (const name of ["index.html", "style.css", "assets/ui/theme.js", "standalone/app.js", "standalone/workers.js", "standalone/resources.js", "standalone/resources/test.js", "standalone/tools/biber.js", "LICENSE", "THIRD_PARTY.md", "vendor/engine/licenses/font.txt", "vendor/bibliography/TeXlyre-NOTICE", "vendor/engine/bundles/chinese/doc/OFL.txt", "vendor/engine/luatex.wasm", "assets/ui/app.js"]) {
+      const bytes = Buffer.from(name === "standalone/resources.js" ? "globalThis.rexCatalog=" + JSON.stringify({schema: 1,
+        chunks: {test: {script: "resources/test.js"}}, tools: {biber: {script: "tools/biber.js"}}}) + ";\n" : name + "\n");
       await mkdir(path.dirname(path.join(dist, name)), {recursive: true});
       await writeFile(path.join(dist, name), bytes);
       files[name] = {bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex")};
@@ -32,6 +33,9 @@ test("local folder preserves standalone bytes and notices, excludes hosted dupli
     await writeFile(path.join(dist, "standalone/workers.js"), "stale");
     await assert.rejects(releaseLocal(dist, output), /does not match build manifest/);
     assert.equal(await readFile(path.join(output, "standalone/workers.js"), "utf8"), "standalone/workers.js\n");
+    delete files["standalone/resources/test.js"];
+    await writeFile(path.join(dist, "manifest.json"), JSON.stringify({schema: 1, files}));
+    await assert.rejects(releaseLocal(dist, output), /Incomplete local resource inventory/);
     delete files["standalone/resources.js"];
     await writeFile(path.join(dist, "manifest.json"), JSON.stringify({schema: 1, files}));
     await assert.rejects(releaseLocal(dist, output), /complete build/);

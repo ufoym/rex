@@ -26,7 +26,7 @@ try {
     "Startup warming closed the live engine: " + await page.locator("#log").textContent());
   assert.equal(await page.evaluate(() => crossOriginIsolated), true);
   assert.ok(await page.evaluate(() => rex.session.layout.pdf.length > 1000));
-  assert.ok(await page.evaluate(() => startupStatuses.some(s => /Loading engine resources \d+\/\d+/.test(s))),
+  assert.ok(await page.evaluate(() => startupStatuses.some(s => /^Loading .+ · [\d.]+\/[\d.]+ (?:KiB|MiB)/.test(s))),
     "Startup must show resource download progress");
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#download-menu > summary").click();

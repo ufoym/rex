@@ -2,8 +2,8 @@ import binaryen from "binaryen";
 import {readFile, writeFile, mkdir} from "node:fs/promises";
 import {createHash} from "node:crypto";
 
-// Asyncify is a build-time transform for the local stdin transport. Keep the
-// original module for full passes and the shared-memory hosted live compiler.
+// Local filesystem reads can wait for document-loaded scripts. Hosted workers
+// retain the original module and shared-memory transport.
 export async function asyncWasm(bytes) {
   const key = createHash("sha256").update(bytes)
     .update(await readFile(new URL(import.meta.url)))
@@ -14,7 +14,9 @@ export async function asyncWasm(bytes) {
   try {
     module.setFeatures(binaryen.Features.BulkMemory | binaryen.Features.BulkMemoryOpt |
       binaryen.Features.NontrappingFPToInt | binaryen.Features.MutableGlobals | binaryen.Features.SignExt);
-    binaryen.setPassArgument("asyncify-imports", "wasi_snapshot_preview1.fd_read,env.invoke_*");
+    const imports = WebAssembly.Module.imports(new WebAssembly.Module(bytes)).filter(entry =>
+      entry.kind === 'function' && (entry.module === 'wasi_snapshot_preview1' || /^(__syscall_|invoke_)/.test(entry.name)));
+    binaryen.setPassArgument("asyncify-imports", imports.map(entry => entry.module + '.' + entry.name).join(','));
     module.runPasses(["asyncify"]);
     if (!module.validate()) throw Error("Invalid Asyncify LuaTeX module");
     const output = module.emitBinary();

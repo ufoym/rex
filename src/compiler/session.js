@@ -2,6 +2,7 @@ import { LiveEngine } from "./live-engine.js";
 import { equivalent } from "../protocol/display-list.js";
 import { preamble, paragraphs, changedSpan, safe } from "../core/document.js";
 import { moduleWorker } from "../protocol/worker.js";
+import {loadingStatus} from "./resource-io.js";
 export class Session {
   constructor(renderer, onStatus, onLog) {
     this.renderer = renderer;
@@ -89,7 +90,7 @@ export class Session {
     if (data.type === "progress") {
       if (this.busy) {
         if (data.phase === "fetching")
-          this.status(data.total ? `Loading engine resources ${data.current}/${data.total}…` : "Loading engine resources…");
+          this.status(loadingStatus(data), data);
         else if (data.phase === "engine") this.status("Starting typesetting engine…");
         else if (data.phase === "typesetting") this.status("Typesetting…");
       }
@@ -141,6 +142,10 @@ export class Session {
       this.log,
       data.resources,
       this.preloadedLive,
+      details => {
+        if (generation === this.generation)
+          this.status(details.phase === 'fetching' ? loadingStatus(details) : 'Updating preview…', details);
+      },
     );
     this.preloadedLive = null;
     // The snapshot is only needed to seed the live worker, not the retained PDF layout.

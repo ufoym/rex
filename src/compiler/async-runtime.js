@@ -1,5 +1,4 @@
-// Asyncify pauses only the local worker's stdin read. Other filesystem I/O stays
-// synchronous against packaged resources; the hosted engine uses shared memory.
+// Asyncify pauses local filesystem calls while packaged resources or stdin arrive.
 export class InputPending {
   constructor(ready) { this.ready = ready; }
 }
@@ -9,22 +8,34 @@ export function asyncRuntime(wasmModule) {
   const stackSize = 1024 * 1024;
   return {
     instantiateWasm(imports, ready) {
-      const read = imports.wasi_snapshot_preview1.fd_read;
-      imports.wasi_snapshot_preview1.fd_read = (...args) => {
-        if (exports.asyncify_get_state() === 2) {
-          exports.asyncify_stop_rewind();
-          return value;
-        }
-        try { return read(...args); }
-        catch (error) {
-          if (!(error instanceof InputPending)) throw error;
-          pending = error.ready.then(() => read(...args));
-          stack ||= exports.malloc(stackSize + 8);
-          new Uint32Array(exports.memory.buffer, stack, 2).set([stack + 8, stack + 8 + stackSize]);
-          exports.asyncify_start_unwind(stack);
-          return 0;
-        }
-      };
+      // Emscripten aliases env and WASI to the same object. Copy the namespaces
+      // before wrapping so invoke trampolines never receive a filesystem wrapper.
+      for (const module of Object.keys(imports)) imports[module] = {...imports[module]};
+      for (const {module, name, kind} of WebAssembly.Module.imports(wasmModule)) {
+        if (kind !== 'function' || (module !== 'wasi_snapshot_preview1' && !name.startsWith('__syscall_'))) continue;
+        const read = imports[module][name];
+        imports[module][name] = (...args) => {
+          if (exports.asyncify_get_state() === 2) {
+            exports.asyncify_stop_rewind();
+            return value;
+          }
+          try { return read(...args); }
+          catch (error) {
+            if (!(error instanceof InputPending)) throw error;
+            pending = (async () => {
+              for (;;) {
+                await error.ready;
+                try { return read(...args); }
+                catch (next) { if (!(next instanceof InputPending)) throw next; error = next; }
+              }
+            })();
+            stack ||= exports.malloc(stackSize + 8);
+            new Uint32Array(exports.memory.buffer, stack, 2).set([stack + 8, stack + 8 + stackSize]);
+            exports.asyncify_start_unwind(stack);
+            return 0;
+          }
+        };
+      }
       WebAssembly.instantiate(wasmModule, imports).then(instance => {
         exports = instance.exports;
         ready(instance, wasmModule);

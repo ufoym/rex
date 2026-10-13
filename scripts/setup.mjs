@@ -8,6 +8,7 @@ import {bundles} from '../src/compiler/assets.js';
 import {buildEditor} from './editor-vendor.mjs';
 import {pruneAssets} from './prune-assets.mjs';
 import {installTools} from './install-tools.mjs';
+import {buildFontAssets} from './font-assets.mjs';
 process.chdir(fileURLToPath(new URL('../', import.meta.url)));
 const engineURL = 'https://github.com/jmckalex/mp-tikz-wasm/releases/download/v0.4.0/mp-tikz-wasm-0.4.0.tar.gz';
 const engineHash = '6cae11a63fee19b4298e71be83f9bbfaffc5d20cae69ccd23254fe7fce369dad';
@@ -196,5 +197,6 @@ try {
   await copyFile(path.join(temp, 'ctablestack/tex/luatex/ctablestack/ctablestack.sty'), 'vendor/ctablestack.sty');
   await pruneAssets(process.cwd());
   await buildEditor();
+  await buildFontAssets(path.resolve('vendor/engine'));
   console.log('Ready: npm run dev, or npm run build to produce dist/.');
 } finally { await rm(temp, {recursive:true, force:true}); }

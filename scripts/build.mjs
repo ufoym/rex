@@ -7,13 +7,15 @@ import { buildEditor } from "./editor-vendor.mjs";
 import { copyAssets, publishDirectory, removeExcludedAssets } from "./copy-assets.mjs";
 import { pruneAssets } from "./prune-assets.mjs";
 import { installTools } from "./install-tools.mjs";
+import { buildFontAssets } from "./font-assets.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 await installTools(root);
 await pruneAssets(root);
 await buildEditor();
+await buildFontAssets(path.join(root, "vendor/engine"));
 const vendors = [ "codemirror.mjs", "codemirror-LICENSE.txt", "bibliography", "type1", "pdfjs", "opentype.js", "opentype-LICENSE", "pdf-lib.mjs", "pdf-lib-LICENSE.md", "ctablestack.sty"];
-const engineFiles = ["luatex.mjs", "luatex.wasm", "logger.js", "vfs/bundle.js", "vfs/lazyfs.js", "LICENSE", "NOTICE.md", "licenses", "bundles/hot.json", ...bundles.map(name => "bundles/" + name)];
+const engineFiles = ["luatex.mjs", "luatex.wasm", "logger.js", "vfs/bundle.js", "vfs/lazyfs.js", "LICENSE", "NOTICE.md", "licenses", "font-cache", "font-cache.json", "bundles/hot.json", ...bundles.map(name => "bundles/" + name)];
 for (const name of [...vendors, ...engineFiles.map(name => "engine/" + name)]) {
   try { await access(path.join(root, "vendor", name)); }
   catch { throw Error(`Missing vendor/${name}. Run npm ci and npm run setup first.`); }

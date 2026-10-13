@@ -18,8 +18,12 @@ export function captureFiles(files, main, pause) {
     'capture.tex': `\\RequirePackage{rex-capture}\\input{rex-preamble.tex}\\directlua{${pause}}\\input{${main}}`};
 }
 export function compile(M, logs) {
-  if (run(M, 'capture.tex') !== 0) throw Error(logs.join('\n'));
-  return collect(M);
+  const finish = code => {
+    if (code !== 0) throw Error(logs.join('\n'));
+    return collect(M);
+  };
+  const code = run(M, 'capture.tex');
+  return code instanceof Promise ? code.then(finish) : finish(code);
 }
 // Convergence passes have no idle time to preload a preamble. Run them in the
 // coordinator's retained VFS instead of paying for another Worker and resource copy.
@@ -32,7 +36,7 @@ export async function coldPass(res, data, aux, cacheFiles, wasmModule) {
     if (line.trim() === 'REX_BROWSER_BODY_START') start = performance.now();
     else logs.push(line);
   }, {}, wasmModule);
-  const output = compile(M, logs);
+  const output = await compile(M, logs);
   collectFontCache(res, M.FS);
   return {...output, logs, bodyMs: performance.now() - start};
 }
@@ -45,6 +49,7 @@ export class FullPass {
     const size = Math.max(4 * 1024 * 1024, packFiles({[main]: files[main], ...aux}).length * 2);
     this.gate = new SharedArrayBuffer(size + 8);
     this.worker.onmessage = ({data}) => {
+      if (data.type === 'progress') this.onProgress?.(data);
       if (data.type === 'ready') { this.isReady = true; this.resolveReady(); }
       if (data.type === 'pass') this.resolve?.(data);
       if (data.type === 'failure') { const e = Error(data.message); this.rejectReady(e); this.reject?.(e); }

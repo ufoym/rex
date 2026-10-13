@@ -1,4 +1,5 @@
 import { digest, packFiles, unpackFiles } from "../protocol/snapshot.js";
+import {isUnloadedLazy} from "../../vendor/engine/vfs/lazyfs.js";
 
 const root = "/texmf-var/";
 const cacheName = "rex-fonts-v1";
@@ -15,18 +16,24 @@ export function fontCacheKey(res, wasm) {
 
 export async function loadFontCache(res, wasm, base) {
   res.fontCache = {};
-  const packaged = globalThis.rexLocal?.files;
-  const seed = packaged?.["vendor/engine/font-cache.bin"];
-  if (!globalThis.caches && !seed) return;
+  res.fontSeeds = {};
   let key;
   try {
-    // Bytecode and font metadata are valid only for this exact engine/resource set.
+    // Generated tables are valid for this exact engine, manifests and TeX scripts.
     key = await fontCacheKey(res, wasm);
-    if (seed && JSON.parse(new TextDecoder().decode(packaged["vendor/engine/font-cache.json"])).key === key) {
-      const files = unpackFiles(seed);
-      if (Object.keys(files).every(reusable)) res.fontCache = files;
+    const metadata = await res.set.io.fetchJson(base + "engine/font-cache.json");
+    if (metadata.schema === 1 && metadata.key === key) {
+      for (const [name, info] of Object.entries(metadata.files)) {
+        const names = name === root + "luatex-cache/generic/names/luaotfload-names.luc";
+        if ((!reusable(name) && !names) || !/^font-cache\/[a-f0-9]{24}\.bin$/.test(info.asset) || !Number.isSafeInteger(info.bytes) || info.bytes < 0)
+          throw Error("Invalid font seed inventory");
+        const url = base + "engine/" + info.asset;
+        res.fontSeeds[name] = {...info, url};
+        res.set.io.sizes?.set(url, info.bytes);
+        res.set.io.labels?.set(url, names ? "font names" : "font tables " + name.split("/").at(-1).replace(/\.luc$/, ""));
+      }
     }
-  } catch { /* Invalid packaged tables fall back to cold font processing. */ }
+  } catch { res.fontSeeds = {}; /* A missing/invalid optional seed falls back to cold font processing. */ }
   if (!globalThis.caches || !key) return;
   try {
     res.fontCacheUrl = new URL("engine/font-cache/" + key, base).href;
@@ -45,7 +52,7 @@ export function collectFontCache(res, FS) {
       if (name === "." || name === "..") continue;
       const path = dir + name;
       if (FS.isDir(FS.stat(path).mode)) walk(path + "/");
-      else if (reusable(path)) files[path] = FS.readFile(path);
+      else if (reusable(path) && !isUnloadedLazy(FS, path)) files[path] = FS.readFile(path);
     }
   }
   walk(root);

@@ -1,4 +1,4 @@
-import { resources, resourceState } from '../compiler/runtime.js';
+import { resources, resourceState, setResourceProgress } from '../compiler/runtime.js';
 import { FullPass, standbyKey, bodySnapshot, coldPass } from '../compiler/full-pass.js';
 import { PictureCache, scanPictures } from '../compiler/picture-cache.js';
 import { AuxiliaryTools } from '../compiler/tools.js';
@@ -48,6 +48,7 @@ onmessage = async ({data}) => {
       if (generation === epoch) postMessage({type: 'progress', projectId: data.projectId, ...details});
     };
     res ||= await resources(undefined, undefined, progress);
+    setResourceProgress(res, progress);
     current();
     const t = performance.now(), initialStandby = standby, wasReady = standby?.isReady;
     progress({phase: 'engine'});
@@ -70,6 +71,7 @@ onmessage = async ({data}) => {
         standby.close(); standby = null; warmKey = null;
       }
       const worker = standby;
+      if (worker) worker.onProgress = progress;
       activePass = worker;
       standby = null; warmKey = null;
       try {
@@ -86,6 +88,7 @@ onmessage = async ({data}) => {
       await cache.absorb(pictures, output);
       current();
       const generated = await tools.run(res, {...data.files, ...output.generated}, output.aux);
+      progress({phase: 'typesetting'});
       current();
       bibliographyRuns += generated.bibliographyRuns; indexRuns += generated.indexRuns;
       output.logs.push(...generated.logs);

@@ -4,14 +4,25 @@ const decoder = new TextDecoder(), compiled = new Map();
 async function tool(type, res, log) {
   const base = new URL('../../vendor/bibliography/', import.meta.url);
   const name = type === 'biber' ? 'biber' : 'busytex';
+  res.set.io.progress?.({resource: type === 'biber' ? 'Biber bibliography' : type === 'bibtex' ? 'BibTeX bibliography' : 'MakeIndex'});
   let assets = compiled.get(name);
   if (!assets) {
-    assets = Promise.all([import(new URL(name + '.mjs', base).href), res.set.io.fetch(new URL(name + '.wasm', base).href).then(WebAssembly.compile)]);
+    assets = Promise.all([globalThis.rexLocal ? globalThis.rexLocal.tool(name) : import(new URL(name + '.mjs', base).href), res.set.io.fetch(new URL(name + '.wasm', base).href).then(WebAssembly.compile)]);
     compiled.set(name, assets);
     assets.catch(() => compiled.delete(name));
   }
   const [factory, module] = await assets;
+  // These tools use the original synchronous WASM. Their small TeX/bibliography
+  // bundle is loaded only when needed, before entering native filesystem calls.
+  if (type !== 'biber' && globalThis.rexLocal) await res.set.prefetchAll(file => file.bundle === 'bibliography');
+  if (type === 'biber' && globalThis.rexLocal) await res.set.io.fetch(new URL('biber.data', base).href);
   const M = await factory.default({noInitialRun: true, thisProgram: '/bin/busytex', print: log, printErr: log,
+    ...(type === 'biber' ? {setStatus: text => {
+      if (!text) return;
+      const bytes = text.match(/\((\d+)\/(\d+)\)/);
+      res.set.io.progress?.({resource: type === 'biber' ? 'Biber bibliography' : 'BibTeX / MakeIndex',
+        ...(bytes ? {loadedBytes: Number(bytes[1]), totalBytes: Number(bytes[2])} : {})});
+    }} : {}),
     locateFile: path => { const u = new URL(path, base); return u.protocol === 'file:' ? decodeURIComponent(u.pathname) : u.href; },
     instantiateWasm(imports, ready) { WebAssembly.instantiate(module, imports).then(instance => ready(instance, module)); return {}; },
     ...(type !== 'biber' ? {preRun: [m => Object.assign(m.ENV, {TEXMFCNF: '/texmf/web2c', BIBINPUTS: '/work//:/texmf/bibtex/bib//', BSTINPUTS: '/work//:/texmf/bibtex/bst//', INDEXSTYLE: '/work//', HOME: '/home'})]} : {})});

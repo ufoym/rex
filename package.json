@@ -27,11 +27,13 @@
     "test:static": "node tests/browser/offline.mjs",
     "test:full": "node tests/browser/full.mjs",
     "test:chinese": "node tests/browser/chinese.mjs",
-    "test:all": "npm run check && npm test && npm run test:startup-speed && npm run test:startup && npm run test:theme && npm run test:ui && npm run test:browser && npm run test:static && npm run test:webkit && npm run test:full && npm run test:chinese",
+    "test:all": "npm run check && npm test && npm run test:startup-speed && npm run test:startup && npm run test:loading && npm run test:local-worker && npm run test:theme && npm run test:ui && npm run test:browser && npm run test:static && npm run test:webkit && npm run test:full && npm run test:chinese",
     "bench": "node benchmarks/benchmark.mjs",
     "bench:compare": "node benchmarks/compare.mjs",
     "bench:texlode": "node benchmarks/texlode.mjs",
-    "test:ui": "node tests/browser/ui.mjs"
+    "test:ui": "node tests/browser/ui.mjs",
+    "test:loading": "node tests/browser/loading.mjs",
+    "test:local-worker": "node tests/browser/local-worker.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "6.11.1",

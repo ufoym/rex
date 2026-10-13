@@ -30,3 +30,14 @@ test("initial resource progress is visible without completing the compilation", 
   await session.onBackground({type: "progress", projectId: 2, phase: "fetching", detail: "obsolete"});
   assert.equal(statuses.length, 1);
 });
+
+test('font and bibliography byte progress stays visible without replacing the current preview', async () => {
+  const session = Object.create(Session.prototype), updates = [], layout = {pdf: new Uint8Array([1])};
+  Object.assign(session, {projectId: 3, busy: true, layout, status: (text, details) => updates.push({text, details})});
+  await session.onBackground({type: 'progress', projectId: 3, phase: 'fetching', resource: 'font FandolSong-Regular.otf', loadedBytes: 1048576, totalBytes: 2097152});
+  assert.match(updates.at(-1).text, /FandolSong.*1[.]0\/2[.]0 MiB/);
+  assert.equal(updates.at(-1).details.totalBytes, 2097152);
+  assert.equal(session.layout, layout);
+  await session.onBackground({type: 'progress', projectId: 3, phase: 'fetching', resource: 'Biber bibliography', loadedBytes: 2048, totalBytes: 4096});
+  assert.match(updates.at(-1).text, /Biber.*2[.]0\/4[.]0 KiB/);
+});
