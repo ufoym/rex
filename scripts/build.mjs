@@ -6,8 +6,10 @@ import { bundles } from "../src/compiler/assets.js";
 import { buildEditor } from "./editor-vendor.mjs";
 import { copyAssets, publishDirectory, removeExcludedAssets } from "./copy-assets.mjs";
 import { pruneAssets } from "./prune-assets.mjs";
+import { installTools } from "./install-tools.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+await installTools(root);
 await pruneAssets(root);
 await buildEditor();
 const vendors = [ "codemirror.mjs", "codemirror-LICENSE.txt", "bibliography", "type1", "pdfjs", "opentype.js", "opentype-LICENSE", "pdf-lib.mjs", "pdf-lib-LICENSE.md", "ctablestack.sty"];

@@ -9,6 +9,7 @@
     "setup:chinese": "node scripts/setup.mjs --chinese",
     "dev": "node scripts/serve.mjs --source",
     "build": "node scripts/build.mjs",
+    "build:tools": "bash scripts/build-busytex.sh",
     "build:hosted": "node scripts/build.mjs --hosted",
     "release": "npm run build && node scripts/release.mjs",
     "clean": "node scripts/clean.mjs",

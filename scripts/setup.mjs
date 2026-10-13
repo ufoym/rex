@@ -7,13 +7,12 @@ import {spawnSync} from 'node:child_process';
 import {bundles} from '../src/compiler/assets.js';
 import {buildEditor} from './editor-vendor.mjs';
 import {pruneAssets} from './prune-assets.mjs';
+import {installTools} from './install-tools.mjs';
 process.chdir(fileURLToPath(new URL('../', import.meta.url)));
 const engineURL = 'https://github.com/jmckalex/mp-tikz-wasm/releases/download/v0.4.0/mp-tikz-wasm-0.4.0.tar.gz';
 const engineHash = '6cae11a63fee19b4298e71be83f9bbfaffc5d20cae69ccd23254fe7fce369dad';
 const release = 'https://github.com/TeXlyre/texlyre-busytex-build/releases/download/build_wasm_46ebb6216a5c1fe63dd1dc885831d1a8cef2dc86_31802832436_1/';
 const assets = {
-  'busytex.js': '875b87795162cb26b15bd93cffa2e8739bcb900d623ab904029b39402508a1a4',
-  'busytex.wasm': '8d1988fc58cd1611c3cbd6bd986c3e607e5ff44f1d94252207ff7aae4cee72e0',
   'biber.js': 'f097b241ec1dfaff8c43b7c3e242a85c535d4a24b6252288da869d1a8b465c08',
   'biber.wasm': '6c2ddccf3b95e06b419d4aee5f88ef10ddec658ce760fabb34d7145371ff18c5',
   'biber.data': '9ea1357e6180477479b5edfe17538ba655ebebc03142a195d85fb1d47899df21',
@@ -84,6 +83,7 @@ async function setupEngine(temp) {
 async function setupBibliography(temp) {
   const dest = 'vendor/bibliography';
   await mkdir(dest, {recursive:true});
+  await installTools();
   const compat = `const require = globalThis.process?.versions?.node ? (await import('node:module')).createRequire(import.meta.url) : undefined;\nconst __dirname = decodeURIComponent(new URL('.', import.meta.url).pathname);\n`;
   for(const [name, hash] of Object.entries(assets)) {
     const module = name.endsWith('.js') && name.slice(0, -3);

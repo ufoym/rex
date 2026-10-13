@@ -2,9 +2,11 @@ import { access, readFile, readdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import path from "node:path";
+import {verifyTools} from "./install-tools.mjs";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+await verifyTools(root);
 const files = [];
 async function walk(dir) {
   for (const entry of await readdir(path.join(root, dir), { withFileTypes: true })) {

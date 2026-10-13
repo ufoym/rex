@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "source": {
+    "texlive": "https://github.com/TeX-Live/texlive-source/archive/refs/heads/tags/texlive-2026.0.tar.gz",
+    "sha256": "f92e1be0fe4b3ad4e596f8443c5e4e7315ecf0554c2fc153d7af52f854865e24",
+    "emscripten": "4.0.23",
+    "dispatcherSha256": "9e0dbe0796fbe9b159a26e7e3a46a8a182cfae52a3ba3ee44d0a8d90cc24d907"
+  },
+  "applets": [
+    "bibtex8",
+    "makeindex"
+  ],
+  "files": {
+    "busytex.wasm": {
+      "bytes": 229724,
+      "sha256": "0aab87130ef4e55b311f3adb587da9bd8bbb59e2d7f1955f1111b2137dc70484"
+    },
+    "busytex.mjs": {
+      "bytes": 70627,
+      "sha256": "f4593069088d1facc6010bbffb46511b45d1c0574a0ac9c542115ab2e413923b"
+    },
+    "LICENSE": {
+      "bytes": 34523,
+      "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+    },
+    "NOTICE": {
+      "bytes": 1224,
+      "sha256": "5e4d581cbb6bebe8c2bdef04c1420fdbdd3d26313b340890dff276b0574187fc"
+    }
+  }
+}
